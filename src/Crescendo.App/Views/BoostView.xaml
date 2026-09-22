@@ -310,7 +310,7 @@
                     <TextBlock Text="LEVELS" Style="{StaticResource SectionText}" />
                     <TextBlock Style="{StaticResource CaptionText}" FontSize="11" Margin="0,4,0,16"
                                Foreground="{DynamicResource TextTertiaryBrush}"
-                               Text="-60 to 0 dBFS. Input is what Windows mixed; output is what leaves Crescendo." />
+                               Text="-60 to 0 dBFS. Input is what Windows mixed; output is what leaves VolumeX." />
 
                     <Grid Height="220">
                         <Grid.ColumnDefinitions>

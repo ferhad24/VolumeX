@@ -46,8 +46,8 @@ public partial class App : System.Windows.Application
         _instanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutex, out bool isFirstInstance);
         if (!isFirstInstance)
         {
-            MessageBox.Show("Crescendo is already running. Look for it in the notification area.",
-                "Crescendo", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("VolumeX is already running. Look for it in the notification area.",
+                "VolumeX", MessageBoxButton.OK, MessageBoxImage.Information);
             Shutdown();
             return;
         }
@@ -71,14 +71,18 @@ public partial class App : System.Windows.Application
         {
             Log(ex);
             MessageBox.Show(
-                $"Crescendo could not start.\n\n{ex.Message}\n\nMake sure it is running as an administrator.",
-                "Crescendo", MessageBoxButton.OK, MessageBoxImage.Error);
+                $"VolumeX could not start.\n\n{ex.Message}\n\nMake sure it is running as an administrator.",
+                "VolumeX", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown();
             return;
         }
 
         ThemeService.Apply(_viewModel.Settings.Theme);
         SystemEvents_Register();
+
+        // A "start with Windows" task from the Crescendo days points at an exe
+        // that is gone; carry the setting over rather than drop it.
+        StartupService.MigrateLegacyTask(_viewModel.Settings.StartMinimized);
 
         Hotkeys = new HotkeyService();
         Hotkeys.Triggered += OnHotkey;
@@ -89,8 +93,8 @@ public partial class App : System.Windows.Application
 
         _viewModel.ExitRequested += ExitApplication;
         _viewModel.UpdateFound += info => _tray?.ShowMessage(
-            $"Crescendo {info.Version} is available",
-            "Open Crescendo and press Update — it installs in place, settings are kept.");
+            $"VolumeX {info.Version} is available",
+            "Open VolumeX and press Update — it installs in place, settings are kept.");
 
         _window = new MainWindow { DataContext = _viewModel };
         _window.CloseRequested += OnWindowCloseRequested;
@@ -104,7 +108,7 @@ public partial class App : System.Windows.Application
         if (startHidden)
         {
             _window.WindowState = WindowState.Minimized;
-            _tray.ShowMessage("Crescendo is running",
+            _tray.ShowMessage("VolumeX is running",
                 "Open it from here whenever you need to change the boost.");
         }
         else
@@ -167,7 +171,7 @@ public partial class App : System.Windows.Application
 
         MessageBox.Show(
             $"Something went wrong.\n\n{e.Exception.Message}\n\nDetails were written to {LogPath}.",
-            "Crescendo", MessageBoxButton.OK, MessageBoxImage.Warning);
+            "VolumeX", MessageBoxButton.OK, MessageBoxImage.Warning);
         e.Handled = true;
     }
 
@@ -188,6 +192,9 @@ public partial class App : System.Windows.Application
                 EngineService.RestartAudioServiceAsync().GetAwaiter().GetResult();
                 LogLine($"Engine refreshed for version {UpdateService.CurrentVersion}.");
             }
+            // The audio service now runs the engine from its current folder, so
+            // the Crescendo-era copy can go.
+            engine.CleanUpLegacyInstall();
         }
         catch (Exception ex)
         {
@@ -203,6 +210,8 @@ public partial class App : System.Windows.Application
             using var engine = new EngineService();
             engine.Uninstall();
             EngineService.RestartAudioServiceAsync().GetAwaiter().GetResult();
+            // Only now has audiodg let go of any Crescendo-era engine file.
+            engine.CleanUpLegacyInstall();
             LogLine("Uninstalled: engine removed, driver effects and audio policy restored.");
         }
         catch (Exception ex)
@@ -236,7 +245,7 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
         {
             Log(ex);
-            MessageBox.Show($"Engine setup failed.\n\n{ex.Message}", "Crescendo",
+            MessageBox.Show($"Engine setup failed.\n\n{ex.Message}", "VolumeX",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

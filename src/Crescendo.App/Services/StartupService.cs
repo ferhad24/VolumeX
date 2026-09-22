@@ -14,13 +14,35 @@ namespace Crescendo.Services;
 /// </remarks>
 public static class StartupService
 {
-    private const string TaskName = "Crescendo Audio Engine";
+    private const string TaskName = "VolumeX";
 
-    public static bool IsEnabled()
+    // The task 1.1.x created under the old name, pointing at Crescendo.exe.
+    private const string LegacyTaskName = "Crescendo Audio Engine";
+
+    public static bool IsEnabled() => TaskExists(TaskName);
+
+    public static bool SetEnabled(bool enabled, bool startMinimized)
+    {
+        return enabled ? Install(startMinimized) : Remove(TaskName) & Remove(LegacyTaskName);
+    }
+
+    /// <summary>
+    /// After the rename: a startup task left by Crescendo points at an exe that
+    /// no longer exists. Replace it with one for this executable, so "start
+    /// with Windows" survives the upgrade instead of silently stopping.
+    /// </summary>
+    public static void MigrateLegacyTask(bool startMinimized)
+    {
+        if (!TaskExists(LegacyTaskName)) return;
+        Remove(LegacyTaskName);
+        Install(startMinimized);
+    }
+
+    private static bool TaskExists(string name)
     {
         try
         {
-            using Process? process = Start("schtasks.exe", $"/Query /TN \"{TaskName}\"");
+            using Process? process = Start("schtasks.exe", $"/Query /TN \"{name}\"");
             if (process is null) return false;
             process.WaitForExit(5000);
             return process.ExitCode == 0;
@@ -31,15 +53,10 @@ public static class StartupService
         }
     }
 
-    public static bool SetEnabled(bool enabled, bool startMinimized)
-    {
-        return enabled ? Install(startMinimized) : Remove();
-    }
-
     private static bool Install(bool startMinimized)
     {
-        string exe = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "Crescendo.exe");
-        string xmlPath = Path.Combine(Path.GetTempPath(), "crescendo-task.xml");
+        string exe = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "VolumeX.exe");
+        string xmlPath = Path.Combine(Path.GetTempPath(), "volumex-task.xml");
 
         string arguments = startMinimized ? "--minimized" : string.Empty;
 
@@ -50,7 +67,7 @@ public static class StartupService
             <?xml version="1.0" encoding="UTF-16"?>
             <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
               <RegistrationInfo>
-                <Description>Starts the Crescendo audio engine and tray icon at sign-in.</Description>
+                <Description>Starts VolumeX and its tray icon at sign-in.</Description>
                 <URI>\{TaskName}</URI>
               </RegistrationInfo>
               <Triggers>
@@ -114,11 +131,13 @@ public static class StartupService
         }
     }
 
-    private static bool Remove()
+    /// <summary>True when the task is gone afterwards, including if it never existed.</summary>
+    private static bool Remove(string name)
     {
+        if (!TaskExists(name)) return true;
         try
         {
-            using Process? process = Start("schtasks.exe", $"/Delete /TN \"{TaskName}\" /F");
+            using Process? process = Start("schtasks.exe", $"/Delete /TN \"{name}\" /F");
             if (process is null) return false;
             process.WaitForExit(5000);
             return process.ExitCode == 0;

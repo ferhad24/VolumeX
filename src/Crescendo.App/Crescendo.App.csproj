@@ -9,7 +9,7 @@
     <!-- NotifyIcon is the only thing pulled from WinForms; WPF has no tray API. -->
     <UseWindowsForms>true</UseWindowsForms>
     <LangVersion>12.0</LangVersion>
-    <AssemblyName>Crescendo</AssemblyName>
+    <AssemblyName>VolumeX</AssemblyName>
     <RootNamespace>Crescendo</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\..\assets\crescendo.ico</ApplicationIcon>
@@ -17,9 +17,9 @@
     <PlatformTarget>x64</PlatformTarget>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>1.1.2</Version>
-    <Product>Crescendo</Product>
-    <Company>Crescendo</Company>
+    <Version>1.2.0</Version>
+    <Product>VolumeX</Product>
+    <Company>Ferhad</Company>
     <Description>System-wide audio amplification with clipping protection.</Description>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <DebugType>embedded</DebugType>

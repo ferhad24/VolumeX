@@ -1,17 +1,21 @@
-# Crescendo
+# VolumeX
 
 System-wide audio amplification for Windows 10/11 — up to 500% — with a
 look-ahead limiter that keeps boosted audio from clipping.
 
+> VolumeX was called **Crescendo** up to 1.1.2. Internal names (the source
+> folders, `Global\Crescendo.*`, `HKLM\SOFTWARE\Crescendo`, `ProgramData\Crescendo`)
+> keep the old name so upgraded installations keep their settings and driver backups.
+
 ## How it works
 
-Crescendo registers its own **Audio Processing Object** (APO) with the Windows
+VolumeX registers its own **Audio Processing Object** (APO) with the Windows
 audio engine. The APO runs inside `audiodg.exe` as a *mode effect*, after
 Windows has mixed every application, so one instance boosts everything with no
 virtual cable, no driver and no added buffering.
 
 ```
-apps ─► Windows mixer ─► [Crescendo APO] ─► driver ─► speakers
+apps ─► Windows mixer ─► [VolumeX APO] ─► driver ─► speakers
                           boost → subsonic HP → bass/treble → 10-band EQ
                           → mono/swap/balance → trim → look-ahead limiter → clamp
 ```
@@ -27,9 +31,10 @@ apps ─► Windows mixer ─► [Crescendo APO] ─► driver ─► speakers
 
 ## Install
 
-1. Run `dist\Crescendo.exe` (needs the .NET 8 Desktop Runtime; asks for admin).
+1. Download `VolumeX-Setup.exe` from [Releases](https://github.com/ferhad24/VolumeX/releases/latest) and run it
+   (asks for admin; .NET is included). Later versions arrive through the in-app updater.
 2. Press **Install engine**. This:
-   - copies the APO to `C:\Program Files\Crescendo\Engine\`,
+   - copies the APO to `C:\Program Files\VolumeX\Engine\`,
    - registers it and attaches it to the selected playback device,
    - sets `DisableProtectedAudioDG=1` so Windows loads an unsigned APO
      (this weakens the protected audio path some DRM playback uses),
@@ -58,7 +63,7 @@ Global, and all of them can be re-recorded in **Settings → Hotkeys**.
 `Fn` cannot be part of a hotkey: the keyboard's firmware handles it and never
 passes it to Windows. `Ctrl + .` / `Ctrl + ,` sit in the same place. Note that
 they replace the same shortcuts in VS Code (Settings / Quick Fix) while
-Crescendo is running.
+VolumeX is running.
 
 ## Build
 

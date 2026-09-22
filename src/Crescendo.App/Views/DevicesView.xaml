@@ -111,7 +111,7 @@
                 <StackPanel>
                     <TextBlock Text="AUDIO ENGINE" Style="{StaticResource SectionText}" />
                     <TextBlock Style="{StaticResource CaptionText}" Margin="0,4,0,0"
-                               Text="Crescendo amplifies by registering a processing object with Windows' own audio engine. It runs inside the system audio process, after mixing, which is why one instance covers every application at once." />
+                               Text="VolumeX amplifies by registering a processing object with Windows' own audio engine. It runs inside the system audio process, after mixing, which is why one instance covers every application at once." />
 
                     <Border Background="{DynamicResource OverlayBrush}" CornerRadius="{StaticResource ControlRadius}"
                             Padding="16" Margin="0,16,0,0">
@@ -162,7 +162,7 @@
                                            VerticalAlignment="Center" />
                             </StackPanel>
                             <TextBlock Style="{StaticResource CaptionText}" Margin="0,0,0,6"
-                                       Text="• Registers the Crescendo engine as a COM object and attaches it to the selected device." />
+                                       Text="• Registers the VolumeX engine as a COM object and attaches it to the selected device." />
                             <TextBlock Style="{StaticResource CaptionText}" Margin="0,0,0,6"
                                        Text="• Allows Windows to load unsigned audio effects, which weakens the protected path used by some DRM playback." />
                             <TextBlock Style="{StaticResource CaptionText}" Margin="0,0,0,6"

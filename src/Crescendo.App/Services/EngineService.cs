@@ -58,7 +58,7 @@ public sealed class EngineService : IDisposable
     }
 
     public string EngineDirectory { get; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Crescendo", "Engine");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "VolumeX", "Engine");
 
     public string InstalledDllPath => Path.Combine(EngineDirectory, "CrescendoApo.dll");
 
@@ -231,6 +231,11 @@ public sealed class EngineService : IDisposable
         string source = LocateSourceDll();
         if (File.Exists(InstalledDllPath) && FilesMatch(source, InstalledDllPath)) return false;
 
+        // After the Crescendo -> VolumeX rename the engine moves folders; the
+        // new one does not exist yet on an upgraded machine.
+        Directory.CreateDirectory(EngineDirectory);
+        GrantServiceReadAccess(EngineDirectory);
+
         try
         {
             File.Copy(source, InstalledDllPath, overwrite: true);
@@ -246,7 +251,38 @@ public sealed class EngineService : IDisposable
         return true;
     }
 
-    /// <summary>For the uninstaller: everything Crescendo changed, undone.</summary>
+    // Where 1.1.x (still called Crescendo) put the engine and the app.
+    private static readonly string LegacyAppDirectory =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Crescendo");
+
+    /// <summary>
+    /// Removes the old Crescendo folder once nothing uses it. Only safe after
+    /// the audio service has restarted onto the engine in the new location --
+    /// until then audiodg holds the old DLL open.
+    /// </summary>
+    public void CleanUpLegacyInstall()
+    {
+        string legacyEngine = Path.Combine(LegacyAppDirectory, "Engine");
+        if (string.Equals(Path.GetFullPath(legacyEngine), Path.GetFullPath(EngineDirectory), StringComparison.OrdinalIgnoreCase))
+            return;
+
+        string? registered = _installer.GetState(null).DllPath;
+        if (registered is not null && registered.StartsWith(legacyEngine, StringComparison.OrdinalIgnoreCase))
+            return;   // still the live engine: leave it alone
+
+        try
+        {
+            if (Directory.Exists(legacyEngine)) Directory.Delete(legacyEngine, recursive: true);
+            if (Directory.Exists(LegacyAppDirectory) && !Directory.EnumerateFileSystemEntries(LegacyAppDirectory).Any())
+                Directory.Delete(LegacyAppDirectory);
+        }
+        catch (Exception)
+        {
+            // A locked leftover is harmless; the next update tries again.
+        }
+    }
+
+    /// <summary>For the uninstaller: everything VolumeX changed, undone.</summary>
     public void Uninstall()
     {
         _installer.RemoveEverything();
@@ -273,7 +309,7 @@ public sealed class EngineService : IDisposable
         }
 
         throw new FileNotFoundException(
-            "CrescendoApo.dll was not found next to the application. Reinstall Crescendo.",
+            "CrescendoApo.dll was not found next to the application. Reinstall VolumeX.",
             candidates[0]);
     }
 

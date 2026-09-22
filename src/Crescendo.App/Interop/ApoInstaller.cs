@@ -59,7 +59,7 @@ internal sealed class ApoInstaller
     private const string RenderDevicesKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render";
     private const string BackupKey = @"SOFTWARE\Crescendo\Backup";
 
-    private const string FriendlyName = "Crescendo Audio Engine";
+    private const string FriendlyName = "VolumeX Audio Engine";
     private const uint ApoFlagDefault = 0x2 | 0x4 | 0x8;   // APO_FLAG_DEFAULT
 
     private static string ClsidText => ApoClsid.ToString("B").ToUpperInvariant();
@@ -121,7 +121,7 @@ internal sealed class ApoInstaller
     public void RegisterEngine(string dllPath)
     {
         if (!File.Exists(dllPath))
-            throw new FileNotFoundException("The Crescendo APO library is missing.", dllPath);
+            throw new FileNotFoundException("The VolumeX engine library is missing.", dllPath);
 
         using (var clsid = Registry.LocalMachine.CreateSubKey($@"{ClsidKey}\{ClsidText}", true))
         {
@@ -135,7 +135,7 @@ internal sealed class ApoInstaller
 
         using var apo = Registry.LocalMachine.CreateSubKey($@"{AudioEngineKey}\{ClsidText}", true);
         apo.SetValue("FriendlyName", FriendlyName, RegistryValueKind.String);
-        apo.SetValue("Copyright", "Crescendo", RegistryValueKind.String);
+        apo.SetValue("Copyright", "VolumeX", RegistryValueKind.String);
         apo.SetValue("MajorVersion", 1, RegistryValueKind.DWord);
         apo.SetValue("MinorVersion", 0, RegistryValueKind.DWord);
         apo.SetValue("Flags", (int)ApoFlagDefault, RegistryValueKind.DWord);

@@ -34,7 +34,7 @@ public sealed class TrayService : IDisposable
         _toggleItem = new ToolStripMenuItem("Boost on/off", null, (_, _) => _viewModel.ToggleEngineCommand.Execute(null));
 
         var menu = new ContextMenuStrip { ShowImageMargin = false };
-        menu.Items.Add(new ToolStripMenuItem("Open Crescendo", null, (_, _) => ShowRequested?.Invoke())
+        menu.Items.Add(new ToolStripMenuItem("Open VolumeX", null, (_, _) => ShowRequested?.Invoke())
         {
             Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold)
         });
@@ -51,7 +51,7 @@ public sealed class TrayService : IDisposable
         {
             Visible = true,
             ContextMenuStrip = menu,
-            Text = "Crescendo"
+            Text = "VolumeX"
         };
         _icon.DoubleClick += (_, _) => ShowRequested?.Invoke();
         // Clicking a notification (e.g. "update available") opens the window.
@@ -77,8 +77,8 @@ public sealed class TrayService : IDisposable
 
         _toggleItem.Text = enabled ? "Turn boost off" : "Turn boost on";
         _icon.Text = enabled
-            ? $"Crescendo — {percent}%"
-            : "Crescendo — off";
+            ? $"VolumeX — {percent}%"
+            : "VolumeX — off";
 
         if (percent == _lastRenderedPercent && enabled == _lastRenderedEnabled) return;
         _lastRenderedPercent = percent;

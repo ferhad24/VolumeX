@@ -32,7 +32,7 @@
                             <TextBlock Style="{StaticResource CaptionText}" FontSize="11" MaxWidth="560"
                                        HorizontalAlignment="Left"
                                        Foreground="{DynamicResource TextTertiaryBrush}"
-                                       Text="Registers a scheduled task so Crescendo starts elevated without a prompt at every sign-in." />
+                                       Text="Registers a scheduled task so VolumeX starts elevated without a prompt at every sign-in." />
                         </StackPanel>
                     </CheckBox>
 
@@ -149,7 +149,7 @@
                 <StackPanel>
                     <TextBlock Text="ABOUT" Style="{StaticResource SectionText}" Margin="0,0,0,12" />
                     <TextBlock Style="{StaticResource CaptionText}" MaxWidth="640" HorizontalAlignment="Left"
-                               Text="Crescendo amplifies Windows audio at the system level using a custom audio processing object, with a look-ahead limiter to keep boosted peaks from clipping. Settings and per-device profiles are stored in ProgramData\Crescendo." />
+                               Text="VolumeX amplifies Windows audio at the system level using a custom audio processing object, with a look-ahead limiter to keep boosted peaks from clipping. Settings and per-device profiles are stored in ProgramData\Crescendo." />
                     <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
                         <TextBlock Text="{Binding CurrentVersionText}" Style="{StaticResource ValueText}"
                                    VerticalAlignment="Center" Margin="0,0,16,0" />
@@ -163,7 +163,7 @@
                             Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}" />
                     <TextBlock Style="{StaticResource CaptionText}" FontSize="11" Margin="0,10,0,0"
                                Foreground="{DynamicResource TextTertiaryBrush}"
-                               Text="Updates come from github.com/ferhad24/Crescendo and are only installed if they carry Crescendo's signature. Settings and profiles are kept." />
+                               Text="Updates come from github.com/ferhad24/VolumeX and are only installed if they carry VolumeX's signature. Settings and profiles are kept." />
                 </StackPanel>
             </Border>
         </StackPanel>

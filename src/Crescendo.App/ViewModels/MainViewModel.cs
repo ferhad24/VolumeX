@@ -603,13 +603,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             EngineHealth.NotInstalled =>
                 ("Engine not installed",
-                 "Crescendo needs to register its audio engine with Windows before it can amplify anything."),
+                 "VolumeX needs to register its audio engine with Windows before it can amplify anything."),
             EngineHealth.NotAttached =>
                 ("Not active on this device",
                  $"The engine is registered but not attached to {SelectedDeviceName}."),
             EngineHealth.PendingRestart =>
                 ("Restart required",
-                 "Windows loads audio effects when the audio service starts. Restart it to activate Crescendo."),
+                 "Windows loads audio effects when the audio service starts. Restart it to activate VolumeX."),
             EngineHealth.Idle =>
                 ("Ready",
                  $"Running on {SelectedDeviceName}. Waiting for audio."),
@@ -626,7 +626,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             IsHealthy = false;
             StatusTitle = "Cannot reach the engine";
-            StatusDetail = $"Start Crescendo as an administrator. ({failure})";
+            StatusDetail = $"Start VolumeX as an administrator. ({failure})";
         }
     }
 
@@ -687,8 +687,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             if (userAsked && _pendingUpdate is null)
             {
                 UpdateText = reachable
-                    ? $"Crescendo {UpdateService.CurrentVersion} is the latest version."
-                    : "Could not reach the update server (github.com/ferhad24/Crescendo). Check the connection and try again.";
+                    ? $"VolumeX {UpdateService.CurrentVersion} is the latest version."
+                    : "Could not reach the update server (github.com/ferhad24/VolumeX). Check the connection and try again.";
             }
             return;
         }
@@ -696,7 +696,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         bool isNew = _pendingUpdate?.Version != info.Version;
         _pendingUpdate = info;
         UpdateAvailable = true;
-        UpdateText = $"Crescendo {info.Version} is available.";
+        UpdateText = $"VolumeX {info.Version} is available.";
         InstallUpdateCommand.RaiseCanExecuteChanged();
 
         if (isNew) UpdateFound?.Invoke(info);

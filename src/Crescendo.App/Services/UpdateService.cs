@@ -28,7 +28,7 @@ public sealed record UpdateInfo(string Version, string DownloadUrl, string Notes
 public static class UpdateService
 {
     public const string Owner = "ferhad24";
-    public const string Repo = "Crescendo";
+    public const string Repo = "VolumeX";
 
     // Ferhad's self-signed Authenticode certificate. The thumbprint pins the key
     // itself; nobody without the private key can produce a matching signature.
@@ -39,7 +39,7 @@ public static class UpdateService
     private static HttpClient CreateHttp()
     {
         var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
-        http.DefaultRequestHeaders.Add("User-Agent", "Crescendo-Updater");
+        http.DefaultRequestHeaders.Add("User-Agent", "VolumeX-Updater");
         http.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
         return http;
     }
@@ -100,7 +100,7 @@ public static class UpdateService
     public static async Task DownloadAndStartAsync(UpdateInfo info, IProgress<double> progress,
         CancellationToken cancellationToken)
     {
-        string destination = Path.Combine(Path.GetTempPath(), $"Crescendo-{info.Version}-Setup.exe");
+        string destination = Path.Combine(Path.GetTempPath(), $"VolumeX-{info.Version}-Setup.exe");
 
         using (HttpResponseMessage response = await Http.GetAsync(info.DownloadUrl,
                    HttpCompletionOption.ResponseHeadersRead, cancellationToken))
@@ -126,7 +126,7 @@ public static class UpdateService
         {
             File.Delete(destination);
             throw new InvalidOperationException(
-                "The downloaded update is not signed with Crescendo's certificate and was not installed.");
+                "The downloaded update is not signed with VolumeX's certificate and was not installed.");
         }
 
         Process.Start(new ProcessStartInfo(destination)

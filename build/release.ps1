@@ -1,9 +1,9 @@
-# Crescendo - one command to ship a new version.
+# VolumeX - one command to ship a new version.
 #
 #   .\build\release.ps1 1.1.0 "What changed"
 #
 # version -> engine build -> tests -> publish -> sign -> installer -> sign ->
-# git commit + tag + push -> GitHub Release with Crescendo-Setup.exe.
+# git commit + tag + push -> GitHub Release with VolumeX-Setup.exe.
 # Every running copy sees the new version at its next update check and
 # installs it with one click.
 
@@ -12,14 +12,14 @@ param(
     [string]$Notes = "",
     # Multi-line release notes do not survive a command line; pass a file.
     [string]$NotesFile = "",
-    # Builds and verifies dist\Crescendo-Setup.exe but commits, tags and
+    # Builds and verifies dist\VolumeX-Setup.exe but commits, tags and
     # publishes nothing. The csproj version is restored afterwards.
     [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
-$repo = "ferhad24/Crescendo"
+$repo = "ferhad24/VolumeX"
 $release = Join-Path $root "artifacts\release"
 
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Version must look like 1.2.3" }
@@ -65,12 +65,12 @@ Copy-Item (Join-Path $root "artifacts\CrescendoApo.dll") $release -Force
 
 Write-Host "=== 5/7  Sign + installer ===" -ForegroundColor Cyan
 & powershell -NoProfile -ExecutionPolicy Bypass -File $signer $release | Out-Null
-& $iscc "/DMyAppVersion=$Version" (Join-Path $root "installer\Crescendo.iss") | Out-Null
+& $iscc "/DMyAppVersion=$Version" (Join-Path $root "installer\VolumeX.iss") | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "Installer build failed" }
-$setup = Join-Path $root "dist\Crescendo-Setup.exe"
+$setup = Join-Path $root "dist\VolumeX-Setup.exe"
 & powershell -NoProfile -ExecutionPolicy Bypass -File $signer $setup | Out-Null
 if ((Get-AuthenticodeSignature $setup).SignerCertificate.Thumbprint -ne '21874BCDC82C01DA6B124E53C85A02F6C2815D36') {
-    throw "Setup is not signed with the Crescendo certificate - the in-app updater would refuse it"
+    throw "Setup is not signed with the VolumeX certificate - the in-app updater would refuse it"
 }
 
 # Gate: run the updater's own signature check against this exact setup, plus
@@ -92,7 +92,7 @@ Write-Host "=== 6/7  Git ===" -ForegroundColor Cyan
 git -C $root add -A
 # Through a file: Windows PowerShell splits a multi-line -m argument into
 # pathspecs, the commit fails, and the tag then lands on the previous commit.
-$commitFile = Join-Path $env:TEMP "crescendo-commit.txt"
+$commitFile = Join-Path $env:TEMP "volumex-commit.txt"
 # No BOM: Windows PowerShell's UTF8 encoding writes one, and git keeps it in the subject.
 [IO.File]::WriteAllText($commitFile,
     "Release $Version`n`n$Notes`n`nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>",
@@ -103,10 +103,10 @@ git -C $root tag "v$Version"
 git -C $root push -q origin main "v$Version"
 
 Write-Host "=== 7/7  GitHub Release ===" -ForegroundColor Cyan
-if (-not $Notes) { $Notes = "Crescendo $Version" }
-$notesFile = Join-Path $env:TEMP "crescendo-notes.md"
+if (-not $Notes) { $Notes = "VolumeX $Version" }
+$notesFile = Join-Path $env:TEMP "volumex-notes.md"
 $Notes | Set-Content $notesFile -Encoding UTF8
-& gh release create "v$Version" $setup --repo $repo --title "Crescendo $Version" --notes-file $notesFile
+& gh release create "v$Version" $setup --repo $repo --title "VolumeX $Version" --notes-file $notesFile
 if ($LASTEXITCODE -ne 0) { throw "GitHub release failed" }
 
 Write-Host ""

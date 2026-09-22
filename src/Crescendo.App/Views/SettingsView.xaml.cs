@@ -87,8 +87,8 @@ public partial class SettingsView : UserControl
             // Reflect what actually happened rather than what was asked for.
             StartWithWindowsToggle.IsChecked = !wanted;
             MessageBox.Show(
-                "Windows would not let Crescendo change its startup task. Try again, or add it manually in Task Scheduler.",
-                "Crescendo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                "Windows would not let VolumeX change its startup task. Try again, or add it manually in Task Scheduler.",
+                "VolumeX", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
