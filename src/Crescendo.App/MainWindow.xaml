@@ -6,7 +6,7 @@
         xmlns:vm="clr-namespace:Crescendo.ViewModels"
         xmlns:views="clr-namespace:Crescendo.Views"
         Title="VolumeX"
-        Icon="crescendo.ico"
+        Icon="volumex.ico"
         Height="760" Width="1140"
         MinHeight="640" MinWidth="960"
         WindowStartupLocation="CenterScreen"
@@ -48,7 +48,7 @@
 
                 <!-- Wordmark -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center">
-                    <Image Source="crescendo.png" Width="24" Height="24"
+                    <Image Source="volumex.png" Width="24" Height="24"
                            RenderOptions.BitmapScalingMode="HighQuality" />
                     <TextBlock Text="VolumeX" FontFamily="{StaticResource DisplayFont}" FontSize="14"
                                FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"

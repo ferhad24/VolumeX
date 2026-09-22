@@ -94,7 +94,7 @@ public sealed class TrayService : IDisposable
     }
 
     /// <summary>
-    /// Builds the tray image: the Crescendo mark, with a small multiplier badge
+    /// Builds the tray image: the VolumeX logo, with a small multiplier badge
     /// once the boost is above 100%.
     /// </summary>
     /// <remarks>
@@ -167,7 +167,7 @@ public sealed class TrayService : IDisposable
 
             try
             {
-                var uri = new Uri("pack://application:,,,/crescendo.png", UriKind.Absolute);
+                var uri = new Uri("pack://application:,,,/volumex.png", UriKind.Absolute);
                 System.Windows.Resources.StreamResourceInfo info =
                     System.Windows.Application.GetResourceStream(uri);
                 _markImage = Image.FromStream(info.Stream);
