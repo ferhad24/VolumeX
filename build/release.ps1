@@ -90,7 +90,13 @@ if ($DryRun) {
 
 Write-Host "=== 6/7  Git ===" -ForegroundColor Cyan
 git -C $root add -A
-git -C $root commit -q -m "Release $Version`n`n$Notes`n`nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
+# Through a file: Windows PowerShell splits a multi-line -m argument into
+# pathspecs, the commit fails, and the tag then lands on the previous commit.
+$commitFile = Join-Path $env:TEMP "crescendo-commit.txt"
+"Release $Version`n`n$Notes`n`nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" |
+    Set-Content $commitFile -Encoding UTF8
+git -C $root commit -q -F $commitFile
+if ($LASTEXITCODE -ne 0) { throw "Commit failed - not tagging" }
 git -C $root tag "v$Version"
 git -C $root push -q origin main "v$Version"
 
