@@ -74,7 +74,7 @@
                 <StackPanel>
                     <TextBlock Text="HOTKEYS" Style="{StaticResource SectionText}" />
                     <TextBlock Style="{StaticResource CaptionText}" Margin="0,4,0,16"
-                               Text="Work anywhere in Windows. Click a combination to record a new one. Fn cannot be used: keyboards handle it in their own firmware and never pass it to Windows." />
+                               Text="Work anywhere in Windows. Hold boost up or down to keep changing it. Click a combination to record a new one. Fn cannot be used: keyboards handle it in their own firmware and never pass it to Windows." />
 
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>

@@ -50,8 +50,8 @@ Global, and all of them can be re-recorded in **Settings → Hotkeys**.
 
 | Keys | Action |
 |---|---|
-| `Ctrl` + `.` | boost up (step set in Settings, default 25%) |
-| `Ctrl` + `,` | boost down |
+| `Ctrl` + `.` | boost up — a tap moves one step (default 25%), holding glides in 5% steps |
+| `Ctrl` + `,` | boost down — same |
 | `Ctrl` + `Alt` + `B` | boost on / off |
 | `Ctrl` + `Alt` + `0` | back to 100% |
 

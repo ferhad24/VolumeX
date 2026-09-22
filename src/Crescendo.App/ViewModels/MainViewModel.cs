@@ -823,15 +823,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     // ---------------------------------------------------------------- hotkeys
 
-    public void HandleHotkey(HotkeyAction action)
+    /// <summary>Fine step for a held key: 100% to 500% in about three seconds.</summary>
+    private const int HeldStepPercent = 5;
+
+    public void HandleHotkey(HotkeyAction action, bool isRepeat = false)
     {
+        // A tap moves by the configured step; holding then glides in fine steps.
+        int step = isRepeat ? Math.Min(HeldStepPercent, _settings.BoostStepPercent) : _settings.BoostStepPercent;
+
         switch (action)
         {
             case HotkeyAction.BoostUp:
-                BoostPercent = Math.Min(500, BoostPercent + _settings.BoostStepPercent);
+                BoostPercent = Math.Min(500, BoostPercent + step);
                 break;
             case HotkeyAction.BoostDown:
-                BoostPercent = Math.Max(100, BoostPercent - _settings.BoostStepPercent);
+                BoostPercent = Math.Max(100, BoostPercent - step);
                 break;
             case HotkeyAction.ToggleEngine:
                 EngineEnabled = !EngineEnabled;

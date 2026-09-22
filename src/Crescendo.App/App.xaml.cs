@@ -113,10 +113,10 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private void OnHotkey(HotkeyAction action)
+    private void OnHotkey(HotkeyAction action, bool isRepeat)
     {
         if (_viewModel is null) return;
-        _viewModel.HandleHotkey(action);
+        _viewModel.HandleHotkey(action, isRepeat);
         _tray?.Refresh();
     }
 
