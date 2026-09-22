@@ -50,20 +50,23 @@ public static class UpdateService
             : "1.0.0";
 
     /// <summary>
-    /// Returns the newer release, or null when up to date, offline, or the
-    /// repository is not reachable (a private repository answers 404 to an
-    /// anonymous request -- updates need the repository to be public).
+    /// Returns the newer release, or null when there is none. <paramref name="reachable"/>
+    /// tells "up to date" apart from "could not ask": offline, rate-limited, or
+    /// a private repository, which answers 404 to an anonymous request.
     /// </summary>
-    public static async Task<UpdateInfo?> CheckAsync(CancellationToken cancellationToken)
+    public static async Task<(UpdateInfo? Update, bool Reachable)> CheckAsync(CancellationToken cancellationToken)
     {
         try
         {
             string url = $"https://api.github.com/repos/{Owner}/{Repo}/releases/latest";
-            using JsonDocument document = JsonDocument.Parse(await Http.GetStringAsync(url, cancellationToken));
+            using HttpResponseMessage response = await Http.GetAsync(url, cancellationToken);
+            if (!response.IsSuccessStatusCode) return (null, false);
+
+            using JsonDocument document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
             JsonElement root = document.RootElement;
 
             string? tag = (root.TryGetProperty("tag_name", out JsonElement t) ? t.GetString() : null)?.TrimStart('v', 'V');
-            if (string.IsNullOrWhiteSpace(tag) || !IsNewer(tag, CurrentVersion)) return null;
+            if (string.IsNullOrWhiteSpace(tag) || !IsNewer(tag, CurrentVersion)) return (null, true);
 
             string? asset = null;
             if (root.TryGetProperty("assets", out JsonElement assets))
@@ -78,14 +81,15 @@ public static class UpdateService
                     }
                 }
             }
-            if (string.IsNullOrEmpty(asset)) return null;
+            // A release without a setup (e.g. still uploading) is not offered yet.
+            if (string.IsNullOrEmpty(asset)) return (null, true);
 
             string notes = root.TryGetProperty("body", out JsonElement b) ? b.GetString() ?? string.Empty : string.Empty;
-            return new UpdateInfo(tag, asset, notes);
+            return (new UpdateInfo(tag, asset, notes), true);
         }
         catch (Exception)
         {
-            return null;   // offline or rate-limited: try again at the next check
+            return (null, false);   // offline: try again at the next check
         }
     }
 

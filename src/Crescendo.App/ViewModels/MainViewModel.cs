@@ -679,12 +679,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (Updating) return;
         if (userAsked) UpdateText = "Checking for updates…";
 
-        UpdateInfo? info = await UpdateService.CheckAsync(CancellationToken.None).ConfigureAwait(true);
+        (UpdateInfo? info, bool reachable) = await UpdateService.CheckAsync(CancellationToken.None).ConfigureAwait(true);
 
         if (info is null)
         {
+            // Only claim "latest" when GitHub actually answered.
             if (userAsked && _pendingUpdate is null)
-                UpdateText = $"Crescendo {UpdateService.CurrentVersion} is the latest version.";
+            {
+                UpdateText = reachable
+                    ? $"Crescendo {UpdateService.CurrentVersion} is the latest version."
+                    : "Could not reach the update server (github.com/ferhad24/Crescendo). Check the connection and try again.";
+            }
             return;
         }
 
