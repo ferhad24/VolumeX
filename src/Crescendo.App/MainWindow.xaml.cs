@@ -12,8 +12,6 @@ public partial class MainWindow : Window
     /// <summary>Raised instead of closing, so the app can decide to hide to tray.</summary>
     public event EventHandler? CloseRequested;
 
-    private bool _suppressDeviceEvent;
-
     public MainWindow()
     {
         InitializeComponent();
@@ -60,7 +58,7 @@ public partial class MainWindow : Window
 
     private void OnDeviceSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_suppressDeviceEvent || ViewModel is null) return;
+        if (ViewModel is null) return;
         if (sender is not ComboBox { SelectedItem: AudioDevice device }) return;
         if (device.Id == ViewModel.SelectedDevice?.Id) return;
 

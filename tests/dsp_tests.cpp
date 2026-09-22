@@ -252,6 +252,41 @@ static void TestLimiterCeiling()
     Check(PeakOf(quiet) <= lowCeiling + 1e-4f, "a -6 dBFS ceiling is honoured", detail);
 }
 
+// The chain ends in a hard clamp, so a test of the whole chain can never see
+// the limiter overshoot -- the clamp hides it, and clamping is exactly what
+// crackles. This drives the Limiter alone and demands it hold the ceiling by
+// itself, on the material that stresses it most: loud bass, heavy boost.
+static void TestLimiterNeedsNoClamp()
+{
+    printf("limiter without the safety clamp\n");
+
+    const float ceiling = std::pow(10.0f, -0.3f / 20.0f);
+
+    struct Case { double hz; double amplitude; const char* name; };
+    const Case cases[] = {
+        { 60.0,  0.9 * 5.0, "60 Hz at 500%" },
+        { 440.0, 0.9 * 5.0, "440 Hz at 500%" },
+        { 60.0,  0.9 * 2.0, "60 Hz at 200%" },
+    };
+
+    for (const Case& c : cases)
+    {
+        cres::Limiter limiter;
+        limiter.Prepare(kRate, kChannels, 20.0f);
+        limiter.SetParams(-0.3f, 120.0f, 5.0f);
+
+        std::vector<float> signal = MakeSine(c.hz, c.amplitude, 48000);
+        for (uint32_t offset = 0; offset < 48000; offset += 480)
+            limiter.Process(signal.data() + static_cast<size_t>(offset) * kChannels, 480, kChannels);
+        limiter.Release();
+
+        char what[96], detail[96];
+        snprintf(what, sizeof(what), "limiter alone holds the ceiling: %s", c.name);
+        snprintf(detail, sizeof(detail), "(peak %.4f, ceiling %.4f)", PeakOf(signal), ceiling);
+        Check(PeakOf(signal) <= ceiling + 1e-5f, what, detail);
+    }
+}
+
 static void TestSafetyClamp()
 {
     printf("safety\n");
@@ -305,7 +340,8 @@ static void TestLookaheadLatency()
         if (std::fabs(impulse[f * kChannels]) > 0.01f) { foundAt = static_cast<int>(f); break; }
     }
 
-    const uint32_t expected = static_cast<uint32_t>(kRate * 5.0 / 1000.0);
+    // A window of L samples needs L - 1 samples of delay (see Limiter.h).
+    const uint32_t expected = static_cast<uint32_t>(kRate * 5.0 / 1000.0) - 1;
     char detail[160];
     snprintf(detail, sizeof(detail), "(impulse at %d, expected %u, reported %u)",
              foundAt, 100 + expected, reportedLatency);
@@ -484,6 +520,7 @@ int main()
     TestForcedBypass();
     TestLinearGain();
     TestLimiterCeiling();
+    TestLimiterNeedsNoClamp();
     TestSafetyClamp();
     TestLookaheadLatency();
     TestEqualizer();

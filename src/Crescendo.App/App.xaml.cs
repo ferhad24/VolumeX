@@ -31,6 +31,16 @@ public partial class App : System.Windows.Application
             new FrameworkPropertyMetadata(
                 System.Windows.Markup.XmlLanguage.GetLanguage(culture.IetfLanguageTag)));
 
+        // Called by the uninstaller: undo everything, no UI. Runs before the
+        // single-instance check so a copy that is still shutting down cannot
+        // make the uninstall silently skip its cleanup.
+        if (HasArg(e, "--uninstall"))
+        {
+            RunUninstall();
+            Shutdown();
+            return;
+        }
+
         // Two copies would fight over the shared configuration block and the
         // per-application mixer, so the second one simply defers to the first.
         _instanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutex, out bool isFirstInstance);
@@ -46,10 +56,12 @@ public partial class App : System.Windows.Application
 
         // Scripted install/removal for the default playback device, then carry
         // on into the normal UI. Uses the same code path as the buttons.
-        if (e.Args.Any(a => a.Equals("--install-engine", StringComparison.OrdinalIgnoreCase)))
+        if (HasArg(e, "--install-engine"))
             RunEngineSetup(install: true);
-        else if (e.Args.Any(a => a.Equals("--remove-engine", StringComparison.OrdinalIgnoreCase)))
+        else if (HasArg(e, "--remove-engine"))
             RunEngineSetup(install: false);
+        else if (HasArg(e, "--update-engine"))
+            RunEngineRefresh();
 
         try
         {
@@ -74,6 +86,11 @@ public partial class App : System.Windows.Application
         _tray = new TrayService(_viewModel);
         _tray.ShowRequested += ShowMainWindow;
         _tray.ExitRequested += ExitApplication;
+
+        _viewModel.ExitRequested += ExitApplication;
+        _viewModel.UpdateFound += info => _tray?.ShowMessage(
+            $"Crescendo {info.Version} is available",
+            "Open Crescendo and press Update — it installs in place, settings are kept.");
 
         _window = new MainWindow { DataContext = _viewModel };
         _window.CloseRequested += OnWindowCloseRequested;
@@ -152,6 +169,46 @@ public partial class App : System.Windows.Application
             $"Something went wrong.\n\n{e.Exception.Message}\n\nDetails were written to {LogPath}.",
             "Crescendo", MessageBoxButton.OK, MessageBoxImage.Warning);
         e.Handled = true;
+    }
+
+    private static bool HasArg(StartupEventArgs e, string name) =>
+        e.Args.Any(a => a.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Run by the setup after every install: swaps in a new engine only when
+    /// one was already installed and the shipped DLL differs.
+    /// </summary>
+    private static void RunEngineRefresh()
+    {
+        try
+        {
+            using var engine = new EngineService();
+            if (engine.RefreshInstalledEngine())
+            {
+                EngineService.RestartAudioServiceAsync().GetAwaiter().GetResult();
+                LogLine($"Engine refreshed for version {UpdateService.CurrentVersion}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            // The app still works with the previous engine; report, do not block.
+            Log(ex);
+        }
+    }
+
+    private static void RunUninstall()
+    {
+        try
+        {
+            using var engine = new EngineService();
+            engine.Uninstall();
+            EngineService.RestartAudioServiceAsync().GetAwaiter().GetResult();
+            LogLine("Uninstalled: engine removed, driver effects and audio policy restored.");
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
+        }
     }
 
     private static void RunEngineSetup(bool install)

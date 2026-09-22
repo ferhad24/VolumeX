@@ -83,6 +83,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _sessionTimer.Start();
         _statusTimer.Start();
         RefreshStatus();
+        StartUpdateChecks();
     }
 
     // ---------------------------------------------------------------- state
@@ -629,6 +630,100 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    // ---------------------------------------------------------------- updates
+
+    private UpdateInfo? _pendingUpdate;
+    private DispatcherTimer? _updateTimer;
+
+    /// <summary>Raised once per newly found version, for the tray notification.</summary>
+    public event Action<UpdateInfo>? UpdateFound;
+
+    /// <summary>The setup has started and needs this process gone to replace it.</summary>
+    public event Action? ExitRequested;
+
+    public string CurrentVersionText => $"Version {UpdateService.CurrentVersion}";
+
+    private bool _updateAvailable;
+    public bool UpdateAvailable { get => _updateAvailable; private set => Set(ref _updateAvailable, value); }
+
+    private string _updateText = string.Empty;
+    public string UpdateText { get => _updateText; private set => Set(ref _updateText, value); }
+
+    private bool _updating;
+    public bool Updating { get => _updating; private set => Set(ref _updating, value); }
+
+    public AsyncRelayCommand InstallUpdateCommand { get; private set; } = null!;
+    public AsyncRelayCommand CheckForUpdatesCommand { get; private set; } = null!;
+
+    private void StartUpdateChecks()
+    {
+        InstallUpdateCommand = new AsyncRelayCommand(InstallUpdateAsync, () => _pendingUpdate is not null && !Updating);
+        CheckForUpdatesCommand = new AsyncRelayCommand(() => CheckForUpdatesAsync(userAsked: true));
+
+        // First check shortly after start, so launch itself stays instant;
+        // then every six hours for a copy that lives in the tray for days.
+        _updateTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
+        {
+            Interval = TimeSpan.FromSeconds(8)
+        };
+        _updateTimer.Tick += async (_, _) =>
+        {
+            _updateTimer.Interval = TimeSpan.FromHours(6);
+            await CheckForUpdatesAsync(userAsked: false);
+        };
+        _updateTimer.Start();
+    }
+
+    private async Task CheckForUpdatesAsync(bool userAsked)
+    {
+        if (Updating) return;
+        if (userAsked) UpdateText = "Checking for updates…";
+
+        UpdateInfo? info = await UpdateService.CheckAsync(CancellationToken.None).ConfigureAwait(true);
+
+        if (info is null)
+        {
+            if (userAsked && _pendingUpdate is null)
+                UpdateText = $"Crescendo {UpdateService.CurrentVersion} is the latest version.";
+            return;
+        }
+
+        bool isNew = _pendingUpdate?.Version != info.Version;
+        _pendingUpdate = info;
+        UpdateAvailable = true;
+        UpdateText = $"Crescendo {info.Version} is available.";
+        InstallUpdateCommand.RaiseCanExecuteChanged();
+
+        if (isNew) UpdateFound?.Invoke(info);
+    }
+
+    private async Task InstallUpdateAsync()
+    {
+        if (_pendingUpdate is null) return;
+
+        Updating = true;
+        InstallUpdateCommand.RaiseCanExecuteChanged();
+        try
+        {
+            var progress = new Progress<double>(p => UpdateText = $"Downloading {_pendingUpdate.Version}… {p:0}%");
+            await UpdateService.DownloadAndStartAsync(_pendingUpdate, progress, CancellationToken.None)
+                .ConfigureAwait(true);
+
+            UpdateText = "Installing…";
+            // The setup closes nothing it does not have to: this process leaves
+            // on its own (bypassing the engine on the way out) and the new
+            // version starts when the installer finishes.
+            ExitRequested?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            App.Log(ex);
+            UpdateText = $"Update failed: {ex.Message}";
+            Updating = false;
+            InstallUpdateCommand.RaiseCanExecuteChanged();
+        }
+    }
+
     // ---------------------------------------------------------------- commands
 
     public RelayCommand ToggleEngineCommand { get; }
@@ -878,6 +973,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _sessionTimer.Stop();
         _statusTimer.Stop();
         _saveTimer.Stop();
+        _updateTimer?.Stop();
 
         _engine.MeterUpdated -= OnMeterUpdated;
         _engine.Dispose();

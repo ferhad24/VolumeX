@@ -150,9 +150,20 @@
                     <TextBlock Text="ABOUT" Style="{StaticResource SectionText}" Margin="0,0,0,12" />
                     <TextBlock Style="{StaticResource CaptionText}" MaxWidth="640" HorizontalAlignment="Left"
                                Text="Crescendo amplifies Windows audio at the system level using a custom audio processing object, with a look-ahead limiter to keep boosted peaks from clipping. Settings and per-device profiles are stored in ProgramData\Crescendo." />
-                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,10,0,0"
+                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                        <TextBlock Text="{Binding CurrentVersionText}" Style="{StaticResource ValueText}"
+                                   VerticalAlignment="Center" Margin="0,0,16,0" />
+                        <Button Style="{StaticResource SecondaryButton}" Content="Check for updates"
+                                Padding="12,7" FontSize="12" Command="{Binding CheckForUpdatesCommand}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding UpdateText}" Style="{StaticResource CaptionText}" Margin="0,8,0,0"
+                               Visibility="{Binding UpdateText, Converter={StaticResource PresenceToVisibility}}" />
+                    <Button Style="{StaticResource PrimaryButton}" Content="Update now" HorizontalAlignment="Left"
+                            Margin="0,10,0,0" Command="{Binding InstallUpdateCommand}"
+                            Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}" />
+                    <TextBlock Style="{StaticResource CaptionText}" FontSize="11" Margin="0,10,0,0"
                                Foreground="{DynamicResource TextTertiaryBrush}"
-                               Text="Version 1.0" />
+                               Text="Updates come from github.com/ferhad24/Crescendo and are only installed if they carry Crescendo's signature. Settings and profiles are kept." />
                 </StackPanel>
             </Border>
         </StackPanel>

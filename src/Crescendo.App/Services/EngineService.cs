@@ -218,6 +218,41 @@ public sealed class EngineService : IDisposable
 
     public void DetachEndpoint(string endpointId) => _installer.DetachFromEndpoint(endpointId);
 
+    /// <summary>
+    /// After an app update: if the engine is installed and the shipped DLL
+    /// differs from the one audiodg loads, replace it. Never installs an engine
+    /// that was not installed before -- that stays the user's explicit choice.
+    /// </summary>
+    /// <returns>True when the audio service must restart to load the new engine.</returns>
+    public bool RefreshInstalledEngine()
+    {
+        if (!_installer.GetState(null).EngineRegistered) return false;
+
+        string source = LocateSourceDll();
+        if (File.Exists(InstalledDllPath) && FilesMatch(source, InstalledDllPath)) return false;
+
+        try
+        {
+            File.Copy(source, InstalledDllPath, overwrite: true);
+        }
+        catch (IOException)
+        {
+            // Mapped by audiodg: stop the service to release it.
+            RunAsync("net", "stop AudioEndpointBuilder /y", CancellationToken.None).GetAwaiter().GetResult();
+            File.Copy(source, InstalledDllPath, overwrite: true);
+        }
+
+        _installer.RegisterEngine(InstalledDllPath);
+        return true;
+    }
+
+    /// <summary>For the uninstaller: everything Crescendo changed, undone.</summary>
+    public void Uninstall()
+    {
+        _installer.RemoveEverything();
+        StartupService.SetEnabled(false, startMinimized: false);
+    }
+
     public void RemoveEverything() => _installer.RemoveEverything();
 
     private string LocateSourceDll()
@@ -244,11 +279,15 @@ public sealed class EngineService : IDisposable
 
     private static bool FilesMatch(string a, string b)
     {
+        // By content: installers and signing both rewrite timestamps, so a
+        // timestamp comparison can call two different engines "the same".
         try
         {
-            var fa = new FileInfo(a);
-            var fb = new FileInfo(b);
-            return fa.Length == fb.Length && fa.LastWriteTimeUtc == fb.LastWriteTimeUtc;
+            if (new FileInfo(a).Length != new FileInfo(b).Length) return false;
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            using FileStream fa = File.OpenRead(a);
+            using FileStream fb = new(b, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return sha.ComputeHash(fa).AsSpan().SequenceEqual(sha.ComputeHash(fb));
         }
         catch (Exception)
         {

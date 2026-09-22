@@ -1,18 +1,31 @@
 //
 // Limiter.h -- Look-ahead brickwall peak limiter.
 //
-// Why look-ahead: a boost of up to +14 dB will drive ordinary program material
-// well past 0 dBFS. A feedback limiter only reacts after the peak has already
-// clipped. Here the signal is delayed by the look-ahead window while the gain
-// curve is computed from the *future* samples, so the attenuation is fully in
-// place by the time the peak arrives -- no clipping, no pumping artefacts.
+// Why look-ahead: a boost of up to +14 dB drives ordinary programme material
+// well past 0 dBFS. A feedback limiter only reacts after the peak has clipped.
+// Here the signal is delayed while the gain is computed from future samples,
+// so the attenuation is in place by the time the peak arrives.
 //
-// The window minimum is tracked with a monotonic deque, giving an exact O(1)
-// sliding minimum. That is what turns the ceiling into a true guarantee rather
-// than an approximation.
+// The gain path, and why it holds the ceiling on its own:
 //
-// All buffers come from AERT_Allocate (non-paged), as required for APO code
-// running on the audio engine real-time thread.
+//   t(n)  per-sample target: ceiling / |peak|, or 1
+//   M(j)  = min t over the window [j, j+L-1]          (monotonic deque, exact O(1))
+//   R(j)  = M(j) when M falls, otherwise rises toward M with the release time;
+//           so R(j) <= M(j) always
+//   G(k)  = mean of R(j) for j in [k-L+1, k]          (boxcar of length L)
+//
+// Every window [j, j+L-1] with j in [k-L+1, k] contains k, so M(j) <= t(k),
+// hence R(j) <= t(k), hence their mean G(k) <= t(k). The applied gain can never
+// exceed what sample k needs: the ceiling is met by construction, not by the
+// safety clamp that follows. The boxcar also shapes the attack into a smooth
+// L-sample ramp, which is what keeps heavy limiting free of crackle.
+//
+// An earlier version smoothed toward M with a one-pole attack instead. A
+// one-pole never quite arrives, so under 10+ dB of limiting it overshot by a
+// few percent and the clamp after it clipped audibly.
+//
+// Latency is L - 1 samples. All buffers come from AERT_Allocate (non-paged),
+// as required for APO code on the audio engine real-time thread.
 //
 #pragma once
 #include <cmath>
@@ -46,11 +59,14 @@ namespace cres
             if (FAILED(hr)) { Release(); return hr; }
             hr = AERT_Allocate(idxBytes, reinterpret_cast<void**>(&m_dequeIdx));
             if (FAILED(hr)) { Release(); return hr; }
+            hr = AERT_Allocate(valBytes, reinterpret_cast<void**>(&m_box));
+            if (FAILED(hr)) { Release(); return hr; }
 
             memset(m_delay, 0, delayBytes);
             memset(m_dequeVal, 0, valBytes);
             memset(m_dequeIdx, 0, idxBytes);
 
+            m_lookahead = 0;
             SetParams(-0.3f, 120.0f, 5.0f);
             Reset();
             return S_OK;
@@ -61,20 +77,21 @@ namespace cres
             if (m_delay) { AERT_Free(m_delay); m_delay = nullptr; }
             if (m_dequeVal) { AERT_Free(m_dequeVal); m_dequeVal = nullptr; }
             if (m_dequeIdx) { AERT_Free(m_dequeIdx); m_dequeIdx = nullptr; }
+            if (m_box) { AERT_Free(m_box); m_box = nullptr; }
             m_capacity = 0;
         }
 
         // Safe to call between blocks; clamps everything into the prepared range.
         void SetParams(float ceilingDb, float releaseMs, float lookaheadMs)
         {
-            if (ceilingDb > 0.0f) ceilingDb = 0.0f;
+            if (!(ceilingDb <= 0.0f)) ceilingDb = 0.0f;    // also catches NaN
             if (ceilingDb < -12.0f) ceilingDb = -12.0f;
             m_ceiling = std::pow(10.0f, ceilingDb / 20.0f);
 
-            if (releaseMs < 5.0f) releaseMs = 5.0f;
+            if (!(releaseMs >= 5.0f)) releaseMs = 5.0f;
             if (releaseMs > 2000.0f) releaseMs = 2000.0f;
 
-            if (lookaheadMs < 0.2f) lookaheadMs = 0.2f;
+            if (!(lookaheadMs >= 0.2f)) lookaheadMs = 0.2f;
 
             uint32_t look = static_cast<uint32_t>(m_sampleRate * (lookaheadMs / 1000.0f));
             if (look < 2) look = 2;
@@ -86,10 +103,6 @@ namespace cres
                 ResetWindow();
             }
 
-            // One-pole coefficients. Attack is tied to the look-ahead window so the
-            // smoothed gain has essentially converged by the time the peak lands.
-            const float attackSamples = static_cast<float>(m_lookahead) / 4.6f;
-            m_attackCoef = std::exp(-1.0f / (attackSamples > 1.0f ? attackSamples : 1.0f));
             const float releaseSamples = m_sampleRate * (releaseMs / 1000.0f);
             m_releaseCoef = std::exp(-1.0f / (releaseSamples > 1.0f ? releaseSamples : 1.0f));
         }
@@ -99,13 +112,16 @@ namespace cres
             if (m_delay && m_capacity)
                 memset(m_delay, 0, static_cast<size_t>(m_capacity) * m_channels * sizeof(float));
             m_writePos = 0;
-            m_gain = 1.0f;
             ResetWindow();
         }
 
         float Ceiling() const { return m_ceiling; }
         uint32_t LookaheadSamples() const { return m_lookahead; }
-        bool IsReady() const { return m_delay != nullptr && m_capacity > 0; }
+
+        /// Delay the limiter adds to the signal, as reported to Windows.
+        uint32_t LatencySamples() const { return m_lookahead > 0 ? m_lookahead - 1 : 0; }
+
+        bool IsReady() const { return m_delay != nullptr && m_box != nullptr && m_capacity > 0; }
 
         // Real-time path. In-place over an interleaved block.
         // Returns the deepest gain reduction applied in this block, in dB (>= 0).
@@ -113,14 +129,16 @@ namespace cres
         {
             if (!IsReady() || channels != m_channels) return 0.0f;
 
+            const uint32_t length = m_lookahead;
+            const uint32_t delay = length - 1;
+            const double inverseLength = 1.0 / length;
             float minGain = 1.0f;
 
             for (uint32_t f = 0; f < frames; ++f)
             {
                 float* frame = buffer + static_cast<size_t>(f) * channels;
 
-                // Peak across the channel set -- linking the channels keeps the
-                // stereo image from shifting under gain reduction.
+                // Linked peak across channels, so the stereo image never shifts.
                 float peak = 0.0f;
                 for (uint32_t c = 0; c < channels; ++c)
                 {
@@ -129,12 +147,30 @@ namespace cres
                 }
 
                 const float target = (peak > m_ceiling) ? (m_ceiling / peak) : 1.0f;
-
-                // Push the newest target into the sliding-minimum window.
                 PushTarget(target);
 
-                // Pull the delayed sample out before overwriting the slot.
-                const uint32_t readPos = (m_writePos + m_capacity - m_lookahead) % m_capacity;
+                // M: the minimum over the window, instant down, released up.
+                const float windowMin = WindowMin();
+                m_release = (windowMin < m_release)
+                    ? windowMin
+                    : windowMin + (m_release - windowMin) * m_releaseCoef;
+
+                // G: boxcar over the last L released values.
+                m_boxSum += static_cast<double>(m_release) - m_box[m_boxPos];
+                m_box[m_boxPos] = m_release;
+                if (++m_boxPos == length)
+                {
+                    m_boxPos = 0;
+                    // Re-sum once per window so float rounding cannot drift.
+                    double exact = 0.0;
+                    for (uint32_t i = 0; i < length; ++i) exact += m_box[i];
+                    m_boxSum = exact;
+                }
+                const float gain = static_cast<float>(m_boxSum * inverseLength);
+                if (gain < minGain) minGain = gain;
+
+                // The sample this gain belongs to entered L - 1 samples ago.
+                const uint32_t readPos = (m_writePos + m_capacity - delay) % m_capacity;
                 const float* delayed = m_delay + static_cast<size_t>(readPos) * channels;
 
                 float out[CRESCENDO_MAX_CHANNELS];
@@ -144,18 +180,10 @@ namespace cres
                 float* slot = m_delay + static_cast<size_t>(m_writePos) * channels;
                 for (uint32_t c = 0; c < channels; ++c)
                     slot[c] = frame[c];
-
                 m_writePos = (m_writePos + 1) % m_capacity;
 
-                // Smooth toward the window minimum: fast going down, gentle coming back.
-                const float want = WindowMin();
-                const float coef = (want < m_gain) ? m_attackCoef : m_releaseCoef;
-                m_gain = want + (m_gain - want) * coef;
-
-                if (m_gain < minGain) minGain = m_gain;
-
                 for (uint32_t c = 0; c < channels; ++c)
-                    frame[c] = out[c] * m_gain;
+                    frame[c] = out[c] * gain;
             }
 
             if (minGain >= 1.0f) return 0.0f;
@@ -170,11 +198,19 @@ namespace cres
             m_tail = 0;
             m_count = 0;
             m_sampleIndex = 0;
-            m_gain = 1.0f;
+            m_release = 1.0f;
+
+            // An empty boxcar reads as "no reduction".
+            m_boxPos = 0;
+            m_boxSum = static_cast<double>(m_lookahead);
+            if (m_box)
+            {
+                for (uint32_t i = 0; i < m_capacity; ++i) m_box[i] = 1.0f;
+            }
         }
 
-        // Monotonic deque: values increase from head to tail, so the head is always
-        // the minimum of the last m_lookahead targets.
+        // Monotonic deque: values increase from head to tail, so the head is
+        // always the minimum of the last m_lookahead targets.
         void PushTarget(float target)
         {
             while (m_count > 0)
@@ -193,7 +229,6 @@ namespace cres
             m_tail = (m_tail + 1) % m_capacity;
             ++m_count;
 
-            // Retire entries that have fallen out of the window.
             while (m_count > 0 && m_sampleIndex - m_dequeIdx[m_head] >= m_lookahead)
             {
                 m_head = (m_head + 1) % m_capacity;
@@ -211,6 +246,7 @@ namespace cres
         float* m_delay = nullptr;
         float* m_dequeVal = nullptr;
         uint32_t* m_dequeIdx = nullptr;
+        float* m_box = nullptr;
 
         uint32_t m_capacity = 0;
         uint32_t m_channels = 2;
@@ -221,9 +257,11 @@ namespace cres
         uint32_t m_head = 0, m_tail = 0, m_count = 0;
         uint32_t m_sampleIndex = 0;
 
+        uint32_t m_boxPos = 0;
+        double m_boxSum = 0.0;
+
         float m_ceiling = 0.966f;
-        float m_gain = 1.0f;
-        float m_attackCoef = 0.0f;
+        float m_release = 1.0f;
         float m_releaseCoef = 0.999f;
     };
 }

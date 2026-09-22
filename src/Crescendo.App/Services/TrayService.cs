@@ -54,6 +54,8 @@ public sealed class TrayService : IDisposable
             Text = "Crescendo"
         };
         _icon.DoubleClick += (_, _) => ShowRequested?.Invoke();
+        // Clicking a notification (e.g. "update available") opens the window.
+        _icon.BalloonTipClicked += (_, _) => ShowRequested?.Invoke();
 
         Refresh();
     }

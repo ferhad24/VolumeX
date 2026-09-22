@@ -107,6 +107,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <!-- Master switch. Given its own block at the top because it is
@@ -148,7 +149,28 @@
 
                     <!-- Engine health. Kept in the chrome rather than on a page so a
                          problem is visible wherever the user happens to be. -->
-                    <Border Grid.Row="3" Margin="14,10,14,14" Padding="14,12"
+                    <!-- Update banner: only present while a newer release exists. -->
+                    <Border Grid.Row="3" Margin="14,10,14,0" Padding="14,12" VerticalAlignment="Top"
+                            CornerRadius="{StaticResource ControlRadius}"
+                            Background="{DynamicResource AccentSoftBrush}"
+                            BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
+                            Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="13"
+                                           Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"
+                                           Margin="0,0,8,0" />
+                                <TextBlock Text="Update available" Style="{StaticResource ValueText}" FontSize="12.5" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding UpdateText}" Style="{StaticResource CaptionText}"
+                                       FontSize="11" Margin="0,5,0,0" />
+                            <Button Style="{StaticResource PrimaryButton}" Margin="0,10,0,0" Padding="12,7"
+                                    FontSize="12" Content="Update now"
+                                    Command="{Binding InstallUpdateCommand}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="4" Margin="14,10,14,14" Padding="14,12"
                             CornerRadius="{StaticResource ControlRadius}"
                             Background="{DynamicResource OverlayBrush}"
                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">

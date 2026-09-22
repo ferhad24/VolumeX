@@ -123,7 +123,7 @@ namespace cres
 
         uint32_t LatencySamples() const
         {
-            return m_limiter.IsReady() ? m_limiter.LookaheadSamples() : 0;
+            return m_limiter.IsReady() ? m_limiter.LatencySamples() : 0;
         }
 
         void ResetState()
