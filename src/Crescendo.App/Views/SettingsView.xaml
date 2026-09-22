@@ -1,0 +1,160 @@
+<UserControl x:Class="Crescendo.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer Style="{StaticResource CleanScrollViewer}" Padding="32,0,26,28">
+        <StackPanel>
+
+            <!-- ============================================== appearance ==== -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="APPEARANCE" Style="{StaticResource SectionText}" Margin="0,0,0,14" />
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource OptionChip}" GroupName="Theme" Content="Follow Windows"
+                                     Tag="System" Checked="OnThemeChecked" x:Name="ThemeSystem" />
+                        <RadioButton Style="{StaticResource OptionChip}" GroupName="Theme" Content="Dark"
+                                     Tag="Dark" Checked="OnThemeChecked" x:Name="ThemeDark" />
+                        <RadioButton Style="{StaticResource OptionChip}" GroupName="Theme" Content="Light"
+                                     Tag="Light" Checked="OnThemeChecked" x:Name="ThemeLight" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ================================================ behaviour ==== -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                <StackPanel>
+                    <TextBlock Text="BEHAVIOUR" Style="{StaticResource SectionText}" Margin="0,0,0,16" />
+
+                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0,0,0,16"
+                              x:Name="StartWithWindowsToggle" Click="OnStartupChanged">
+                        <StackPanel>
+                            <TextBlock Text="Start with Windows" Style="{StaticResource BodyText}" />
+                            <TextBlock Style="{StaticResource CaptionText}" FontSize="11" MaxWidth="560"
+                                       HorizontalAlignment="Left"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       Text="Registers a scheduled task so Crescendo starts elevated without a prompt at every sign-in." />
+                        </StackPanel>
+                    </CheckBox>
+
+                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0,0,0,16"
+                              x:Name="StartMinimisedToggle" Click="OnSettingToggled">
+                        <StackPanel>
+                            <TextBlock Text="Start minimised to tray" Style="{StaticResource BodyText}" />
+                            <TextBlock Style="{StaticResource CaptionText}" FontSize="11"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       Text="Open straight into the notification area." />
+                        </StackPanel>
+                    </CheckBox>
+
+                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0,0,0,16"
+                              x:Name="MinimiseToTrayToggle" Click="OnSettingToggled">
+                        <StackPanel>
+                            <TextBlock Text="Minimise to tray" Style="{StaticResource BodyText}" />
+                            <TextBlock Style="{StaticResource CaptionText}" FontSize="11"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       Text="Hide from the taskbar when minimised." />
+                        </StackPanel>
+                    </CheckBox>
+
+                    <CheckBox Style="{StaticResource ToggleSwitch}"
+                              x:Name="CloseToTrayToggle" Click="OnSettingToggled">
+                        <StackPanel>
+                            <TextBlock Text="Keep running when closed" Style="{StaticResource BodyText}" />
+                            <TextBlock Style="{StaticResource CaptionText}" FontSize="11" MaxWidth="560"
+                                       HorizontalAlignment="Left"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       Text="The engine itself keeps working either way — it lives in the Windows audio process. This only controls whether the window and tray icon stay available." />
+                        </StackPanel>
+                    </CheckBox>
+                </StackPanel>
+            </Border>
+
+            <!-- ================================================== hotkeys ==== -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                <StackPanel>
+                    <TextBlock Text="HOTKEYS" Style="{StaticResource SectionText}" />
+                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,4,0,16"
+                               Text="Work anywhere in Windows. Click a combination to record a new one. Fn cannot be used: keyboards handle it in their own firmware and never pass it to Windows." />
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Boost up" Style="{StaticResource BodyText}"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"
+                                MinWidth="180" x:Name="BoostUpHotkey" Click="OnRecordHotkey" Tag="BoostUp" />
+                    </Grid>
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Boost down" Style="{StaticResource BodyText}"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"
+                                MinWidth="180" x:Name="BoostDownHotkey" Click="OnRecordHotkey" Tag="BoostDown" />
+                    </Grid>
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Turn boost on or off" Style="{StaticResource BodyText}"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"
+                                MinWidth="180" x:Name="ToggleHotkey" Click="OnRecordHotkey" Tag="ToggleEngine" />
+                    </Grid>
+
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Back to 100%" Style="{StaticResource BodyText}"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"
+                                MinWidth="180" x:Name="ResetHotkey" Click="OnRecordHotkey" Tag="ResetBoost" />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="70" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Step size" Style="{StaticResource BodyText}"
+                                   VerticalAlignment="Center" />
+                        <Slider Grid.Column="1" Style="{StaticResource FlatSlider}" x:Name="StepSlider"
+                                Minimum="5" Maximum="100" SmallChange="5" LargeChange="25"
+                                ValueChanged="OnStepChanged" />
+                        <TextBlock Grid.Column="2" x:Name="StepValue" Style="{StaticResource ValueText}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <Border Background="#22F87171" CornerRadius="{StaticResource RadiusSm}" Padding="12,9"
+                            Margin="0,14,0,0" x:Name="HotkeyConflictBanner" Visibility="Collapsed">
+                        <TextBlock x:Name="HotkeyConflictText" Style="{StaticResource CaptionText}"
+                                   Foreground="{DynamicResource DangerBrush}" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ==================================================== about ==== -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                <StackPanel>
+                    <TextBlock Text="ABOUT" Style="{StaticResource SectionText}" Margin="0,0,0,12" />
+                    <TextBlock Style="{StaticResource CaptionText}" MaxWidth="640" HorizontalAlignment="Left"
+                               Text="Crescendo amplifies Windows audio at the system level using a custom audio processing object, with a look-ahead limiter to keep boosted peaks from clipping. Settings and per-device profiles are stored in ProgramData\Crescendo." />
+                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,10,0,0"
+                               Foreground="{DynamicResource TextTertiaryBrush}"
+                               Text="Version 1.0" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

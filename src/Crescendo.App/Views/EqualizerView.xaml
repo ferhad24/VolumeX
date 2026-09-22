@@ -1,0 +1,195 @@
+<UserControl x:Class="Crescendo.Views.EqualizerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Crescendo.Controls">
+
+    <ScrollViewer Style="{StaticResource CleanScrollViewer}" Padding="32,0,26,28">
+        <StackPanel>
+
+            <!-- ============================================ response curve == -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="RESPONSE" Style="{StaticResource SectionText}" />
+                            <TextBlock Style="{StaticResource CaptionText}" Margin="0,4,0,0" MaxWidth="520"
+                                       HorizontalAlignment="Left"
+                                       Text="The actual combined response of the shelves and all ten bands, ±15 dB across 20 Hz to 20 kHz." />
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Top"
+                                  IsChecked="{Binding EqEnabled, Mode=TwoWay}" Content="" />
+                    </Grid>
+
+                    <Border Background="{DynamicResource OverlayBrush}" CornerRadius="{StaticResource ControlRadius}"
+                            Margin="0,16,0,0" Padding="4" Height="170">
+                        <controls:EqCurve Bands="{Binding Bands}"
+                                          Revision="{Binding EqRevision}"
+                                          BassDb="{Binding BassDb}"
+                                          TrebleDb="{Binding TrebleDb}"
+                                          CurveBrush="{DynamicResource AccentBrush}"
+                                          FillBrush="{DynamicResource AccentSoftBrush}"
+                                          GridBrush="{DynamicResource BorderBrush}" />
+                    </Border>
+
+                    <Grid Margin="6,6,6,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="100 Hz" Style="{StaticResource SectionText}"
+                                   HorizontalAlignment="Left" />
+                        <TextBlock Grid.Column="1" Text="1 kHz" Style="{StaticResource SectionText}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="10 kHz" Style="{StaticResource SectionText}"
+                                   HorizontalAlignment="Right" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- ==================================================== bands ==== -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                <StackPanel IsEnabled="{Binding EqEnabled}">
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="BANDS" Style="{StaticResource SectionText}"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Style="{StaticResource GhostButton}"
+                                Command="{Binding ResetEqCommand}" Content="Flatten" />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- dB scale, aligned to the slider travel rather than the
+                             whole column, so the marks line up with the thumbs. -->
+                        <Grid Grid.Column="0" Width="34" Margin="0,26,14,26">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="+12" Style="{StaticResource SectionText}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <TextBlock Grid.Row="1" Text="+6" Style="{StaticResource SectionText}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <TextBlock Grid.Row="2" Text="0" Style="{StaticResource SectionText}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Top"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <TextBlock Grid.Row="3" Text="-6" Style="{StaticResource SectionText}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <TextBlock Grid.Row="3" Text="-12" Style="{StaticResource SectionText}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+                        </Grid>
+
+                        <ItemsControl Grid.Column="1" ItemsSource="{Binding Bands}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding GainText}" Style="{StaticResource ValueText}"
+                                                   HorizontalAlignment="Center" FontSize="12" Margin="0,0,0,8"
+                                                   Height="18" />
+                                        <Slider Style="{StaticResource EqSlider}" Height="176"
+                                                Value="{Binding GainDb, Mode=TwoWay}"
+                                                ToolTip="{Binding Label}" />
+                                        <TextBlock Text="{Binding Label}" Style="{StaticResource SectionText}"
+                                                   HorizontalAlignment="Center" Margin="0,8,0,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+
+                    <TextBlock Style="{StaticResource CaptionText}" FontSize="11" Margin="0,18,0,0"
+                               Foreground="{DynamicResource TextTertiaryBrush}" HorizontalAlignment="Center"
+                               Text="Each band is a peaking filter at Q 1.41. Adjacent bands overlap, so the curve above is the truth, not the slider positions." />
+                </StackPanel>
+            </Border>
+
+            <!-- ================================================== shelves ==== -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                <StackPanel>
+                    <TextBlock Text="SHELVES" Style="{StaticResource SectionText}" Margin="0,0,0,4" />
+                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,0,0,16"
+                               Text="Broad tilts either side of the band set. These stay active even when the graphic EQ is off." />
+
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="80" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="Bass" Style="{StaticResource BodyText}" />
+                            <TextBlock Text="Low shelf at 100 Hz" Style="{StaticResource CaptionText}" FontSize="11"
+                                       Foreground="{DynamicResource TextTertiaryBrush}" />
+                        </StackPanel>
+                        <Slider Grid.Column="1" Style="{StaticResource CenteredSlider}"
+                                Minimum="-12" Maximum="12" SmallChange="0.5" LargeChange="2"
+                                Value="{Binding BassDb, Mode=TwoWay}" />
+                        <TextBlock Grid.Column="2" Text="{Binding BassText}" Style="{StaticResource ValueText}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="80" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="Treble" Style="{StaticResource BodyText}" />
+                            <TextBlock Text="High shelf at 8 kHz" Style="{StaticResource CaptionText}" FontSize="11"
+                                       Foreground="{DynamicResource TextTertiaryBrush}" />
+                        </StackPanel>
+                        <Slider Grid.Column="1" Style="{StaticResource CenteredSlider}"
+                                Minimum="-12" Maximum="12" SmallChange="0.5" LargeChange="2"
+                                Value="{Binding TrebleDb, Mode=TwoWay}" />
+                        <TextBlock Grid.Column="2" Text="{Binding TrebleText}" Style="{StaticResource ValueText}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- =================================================== presets ==== -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                <StackPanel>
+                    <TextBlock Text="PRESET" Style="{StaticResource SectionText}" />
+                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,4,0,14"
+                               Text="{Binding SelectedPresetDescription}" />
+                    <ItemsControl ItemsSource="{Binding Presets}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <RadioButton Style="{StaticResource PresetChip}" GroupName="PresetEq"
+                                             IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                             AutomationProperties.Name="{Binding Preset.Name}"
+                                             ToolTip="{Binding Preset.Description}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

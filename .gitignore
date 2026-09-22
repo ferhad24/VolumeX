@@ -1,0 +1,19 @@
+# Build output
+bin/
+obj/
+artifacts/
+dist/
+
+# Editors
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Native build by-products that land next to sources
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+!build/*.def

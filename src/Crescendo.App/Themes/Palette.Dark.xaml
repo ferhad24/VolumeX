@@ -1,0 +1,76 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        Dark palette.
+
+        Built on a cool near-black rather than pure black so elevation reads
+        through lightness alone; every surface differs from the one beneath it by
+        a perceptible but quiet step. The accent is a single aqua hue used
+        sparingly — on the dial, the active nav item and the meter — so the eye
+        always knows where the live value is.
+    -->
+
+    <Color x:Key="BaseColor">#FF0B0D12</Color>
+    <Color x:Key="SurfaceColor">#FF12151C</Color>
+    <Color x:Key="ElevatedColor">#FF191D26</Color>
+    <Color x:Key="OverlayColor">#FF1F2430</Color>
+    <Color x:Key="BorderColor">#FF252B38</Color>
+    <Color x:Key="BorderStrongColor">#FF323A4B</Color>
+
+    <Color x:Key="TextPrimaryColor">#FFE9EDF5</Color>
+    <Color x:Key="TextSecondaryColor">#FF98A2B5</Color>
+    <Color x:Key="TextTertiaryColor">#FF626C80</Color>
+
+    <Color x:Key="AccentColor">#FF22D3EE</Color>
+    <Color x:Key="AccentDeepColor">#FF0891B2</Color>
+    <Color x:Key="AccentGlowColor">#5522D3EE</Color>
+    <Color x:Key="AccentSoftColor">#1F22D3EE</Color>
+
+    <Color x:Key="SuccessColor">#FF34D399</Color>
+    <Color x:Key="WarningColor">#FFFBBF24</Color>
+    <Color x:Key="DangerColor">#FFF87171</Color>
+
+    <Color x:Key="TrackColor">#FF232A36</Color>
+    <Color x:Key="ShadowColor">#FF000000</Color>
+
+    <SolidColorBrush x:Key="BaseBrush" Color="{StaticResource BaseColor}" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+    <SolidColorBrush x:Key="ElevatedBrush" Color="{StaticResource ElevatedColor}" />
+    <SolidColorBrush x:Key="OverlayBrush" Color="{StaticResource OverlayColor}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}" />
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="{StaticResource TextTertiaryColor}" />
+
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentDeepBrush" Color="{StaticResource AccentDeepColor}" />
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="{StaticResource AccentSoftColor}" />
+
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
+    <SolidColorBrush x:Key="TrackBrush" Color="{StaticResource TrackColor}" />
+
+    <LinearGradientBrush x:Key="AccentGradient" StartPoint="0,1" EndPoint="1,0">
+        <GradientStop Color="#FF0EA5E9" Offset="0" />
+        <GradientStop Color="#FF22D3EE" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Green through amber to red: the standard loudness reading, so nobody has
+         to learn a new colour language to know they are running hot. -->
+    <LinearGradientBrush x:Key="MeterGradient" StartPoint="0,1" EndPoint="0,0">
+        <GradientStop Color="#FF34D399" Offset="0.0" />
+        <GradientStop Color="#FF34D399" Offset="0.62" />
+        <GradientStop Color="#FFFBBF24" Offset="0.84" />
+        <GradientStop Color="#FFF87171" Offset="1.0" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="SurfaceGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FF171B24" Offset="0" />
+        <GradientStop Color="#FF12151C" Offset="1" />
+    </LinearGradientBrush>
+
+</ResourceDictionary>

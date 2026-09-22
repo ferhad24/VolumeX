@@ -1,0 +1,8 @@
+; The Windows SDK ships audioenginebaseapo.h with declarations for the locked
+; memory allocator but no import library (it lives in the WDK). Generating a
+; tiny import lib against the system DLL keeps the build WDK-free.
+LIBRARY audioeng.dll
+
+EXPORTS
+    AERT_Allocate
+    AERT_Free
