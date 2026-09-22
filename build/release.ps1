@@ -110,12 +110,15 @@ $Notes | Set-Content $notesFile -Encoding UTF8
 if ($LASTEXITCODE -ne 0) { throw "GitHub release failed" }
 
 # Ask GitHub the way installed copies do, to prove the release is discoverable.
-Start-Sleep -Seconds 5
-$check = & (Join-Path $updaterTests "bin\Debug\net8.0-windows\UpdaterTests.exe") --check
-Write-Host $check
-if ($check -notmatch "update=$([regex]::Escape($Version)) ") {
-    Write-Warning "Installed copies do not see v$Version yet - check the release page."
+# github.com caches /releases/latest for about a minute, so poll for a while.
+$seen = $false
+for ($i = 0; $i -lt 12 -and -not $seen; $i++) {
+    Start-Sleep -Seconds 10
+    $check = & (Join-Path $updaterTests "bin\Debug\net8.0-windows\UpdaterTests.exe") --check
+    $seen = $check -match "update=$([regex]::Escape($Version)) "
 }
+Write-Host $check
+if (-not $seen) { Write-Warning "Installed copies still do not see v$Version after 2 minutes - check the release page." }
 
 Write-Host ""
 Write-Host "Released v$Version." -ForegroundColor Green
