@@ -130,8 +130,14 @@ internal sealed unsafe class SharedState : IDisposable
         Volatile.Write(ref _config->UiHeartbeatMs, CurrentStamp());
     }
 
-    // Same clock as GetTickCount in the APO. Never zero: zero means "no watchdog".
-    private static uint CurrentStamp() => unchecked((uint)Environment.TickCount) | 1u;
+    // Same clock as GetTickCount in the APO. Never zero (zero means "no
+    // watchdog"), and never rounded upward: a stamp ahead of the APO's clock
+    // once read as four billion milliseconds old and bypassed every other block.
+    private static uint CurrentStamp()
+    {
+        uint now = unchecked((uint)Environment.TickCount);
+        return now == 0 ? uint.MaxValue : now;
+    }
 
     /// <summary>
     /// Reads the meter page. Returns <c>false</c> while the APO is mid-update or

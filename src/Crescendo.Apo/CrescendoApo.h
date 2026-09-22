@@ -25,6 +25,7 @@
 
 #include "CrescendoAbi.h"
 #include "dsp/Processor.h"
+#include "dsp/Watchdog.h"
 
 // Defined once in Guids.cpp. Keeping the definition out of this header lets ATL
 // be included normally -- initguid.h redefines DEFINE_GUID and would strip the

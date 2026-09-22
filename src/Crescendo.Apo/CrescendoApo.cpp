@@ -326,13 +326,13 @@ STDMETHODIMP_(void) CCrescendoApo::APOProcess(
 
         // Watchdog: a UI that stops stamping (crashed, killed, or exited
         // without a clean shutdown) must not leave the system boosted.
-        // GetTickCount reads shared user data -- no syscall, safe here -- and
-        // unsigned subtraction survives the 49-day wrap.
+        // GetTickCount reads shared user data -- no syscall, safe here. The age
+        // arithmetic lives in dsp/Watchdog.h, where it is tested.
         bool uiGone = false;
         if (const CrescendoConfig* cfg = m_config)
         {
-            const uint32_t stamp = cfg->uiHeartbeatMs;
-            uiGone = stamp != 0 && (static_cast<uint32_t>(GetTickCount()) - stamp) > CRESCENDO_UI_TIMEOUT_MS;
+            uiGone = cres::UiWatchdogExpired(static_cast<uint32_t>(GetTickCount()),
+                                             cfg->uiHeartbeatMs, CRESCENDO_UI_TIMEOUT_MS);
         }
 
         m_processor.Process(dst, frames, m_config, m_meter, uiGone);

@@ -20,6 +20,7 @@
 #include <baseaudioprocessingobject.h>
 
 #include "../src/Crescendo.Apo/dsp/Processor.h"
+#include "../src/Crescendo.Apo/dsp/Watchdog.h"
 
 namespace
 {
@@ -149,6 +150,44 @@ static void TestBypass()
         if (input[i] != output[i]) { identical = false; break; }
     }
     Check(identical, "disabled engine passes the signal through untouched");
+}
+
+static void TestWatchdogArithmetic()
+{
+    printf("watchdog arithmetic\n");
+
+    const uint32_t t = CRESCENDO_UI_TIMEOUT_MS;
+
+    // The bug that made the engine flap: a stamp 1 ms ahead of the reader.
+    Check(!cres::UiWatchdogExpired(1000, 1001, t), "a stamp 1 ms in the future counts as fresh");
+    Check(!cres::UiWatchdogExpired(1000, 1000, t), "a stamp from this millisecond is fresh");
+    Check(!cres::UiWatchdogExpired(1000 + t, 1000, t), "exactly at the timeout is still alive");
+    Check(cres::UiWatchdogExpired(1001 + t, 1000, t), "one millisecond past the timeout expires");
+    Check(cres::UiWatchdogExpired(50000, 1000, t), "a UI silent for 49 s has expired");
+
+    // GetTickCount wraps every 49.7 days.
+    Check(!cres::UiWatchdogExpired(5, 0xFFFFFFF0u, t), "fresh across the tick wrap");
+    Check(cres::UiWatchdogExpired(t + 100, 0xFFFFFFF0u, t), "expired across the tick wrap");
+
+    Check(!cres::UiWatchdogExpired(123456, 0, t), "stamp 0 (no watchdog) never expires");
+
+    // Every stamp the UI can produce within the last second must read as alive,
+    // for every possible reader time -- sampled over the full 32-bit range.
+    bool allFresh = true;
+    for (uint64_t now = 0; now <= 0xFFFFFFFFull; now += 0x00FFFFFBull)
+    {
+        for (int32_t offset = -1000; offset <= 5; ++offset)
+        {
+            const uint32_t stamp = static_cast<uint32_t>(now) - static_cast<uint32_t>(offset);
+            if (stamp != 0 && cres::UiWatchdogExpired(static_cast<uint32_t>(now), stamp, t))
+            {
+                allFresh = false;
+                break;
+            }
+        }
+        if (!allFresh) break;
+    }
+    Check(allFresh, "no recent stamp is ever mistaken for a dead UI, anywhere on the clock");
 }
 
 static void TestForcedBypass()
@@ -517,6 +556,7 @@ int main()
     printf("===================\n\n");
 
     TestBypass();
+    TestWatchdogArithmetic();
     TestForcedBypass();
     TestLinearGain();
     TestLimiterCeiling();
