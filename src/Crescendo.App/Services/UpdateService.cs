@@ -49,12 +49,90 @@ public static class UpdateService
             ? $"{v.Major}.{v.Minor}.{v.Build}"
             : "1.0.0";
 
+    // The setup's file name on every release, from 1.2.0 on.
+    private const string SetupAssetName = "VolumeX-Setup.exe";
+
+    // Redirects are followed by hand here, so the latest tag can be read off
+    // the Location header without downloading the page it points to.
+    private static readonly HttpClient NoRedirectHttp = CreateNoRedirectHttp();
+
+    private static HttpClient CreateNoRedirectHttp()
+    {
+        var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
+        {
+            Timeout = TimeSpan.FromSeconds(30)
+        };
+        http.DefaultRequestHeaders.Add("User-Agent", "VolumeX-Updater");
+        return http;
+    }
+
     /// <summary>
-    /// Returns the newer release, or null when there is none. <paramref name="reachable"/>
-    /// tells "up to date" apart from "could not ask": offline, rate-limited, or
-    /// a private repository, which answers 404 to an anonymous request.
+    /// Returns the newer release, or null when there is none. The flag tells
+    /// "up to date" apart from "could not ask" (offline, or GitHub refused).
     /// </summary>
+    /// <remarks>
+    /// The check goes through github.com, not api.github.com. The API allows
+    /// 60 anonymous requests per hour per IP address; behind one shared address
+    /// (an office, a school, a mobile carrier) that runs out and the update
+    /// would silently never arrive. The web endpoint has no such budget. The
+    /// API is kept only as a fallback.
+    /// </remarks>
     public static async Task<(UpdateInfo? Update, bool Reachable)> CheckAsync(CancellationToken cancellationToken)
+    {
+        (UpdateInfo? Update, bool Reachable)? viaWeb = await CheckViaWebAsync(cancellationToken);
+        if (viaWeb is { } result) return result;
+        return await CheckViaApiAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// github.com/{owner}/{repo}/releases/latest redirects to .../releases/tag/vX.Y.Z.
+    /// Returns null (not a result) when the page did not answer as expected,
+    /// so the caller can fall back to the API.
+    /// </summary>
+    private static async Task<(UpdateInfo?, bool)?> CheckViaWebAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            // A renamed repository answers with a 301 to its new path first.
+            var url = new Uri($"https://github.com/{Owner}/{Repo}/releases/latest");
+            for (int hop = 0; hop < 5; hop++)
+            {
+                using HttpResponseMessage response = await NoRedirectHttp.GetAsync(url,
+                    HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+                if ((int)response.StatusCode is < 300 or >= 400 || response.Headers.Location is null)
+                    return null;
+
+                url = response.Headers.Location.IsAbsoluteUri
+                    ? response.Headers.Location
+                    : new Uri(url, response.Headers.Location);
+
+                const string marker = "/releases/tag/";
+                int at = url.AbsolutePath.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+                if (at < 0) continue;
+
+                string tag = Uri.UnescapeDataString(url.AbsolutePath[(at + marker.Length)..]).TrimStart('v', 'V');
+                if (!IsNewer(tag, CurrentVersion)) return (null, true);
+
+                // The release page can exist a moment before its setup has
+                // finished uploading; only offer it once the file is there.
+                string repoPath = url.AbsolutePath[..at];
+                var asset = new Uri(url, $"{repoPath}/releases/download/v{tag}/{SetupAssetName}");
+                using var probe = new HttpRequestMessage(HttpMethod.Head, asset);
+                using HttpResponseMessage assetResponse = await NoRedirectHttp.SendAsync(probe, cancellationToken);
+                bool present = (int)assetResponse.StatusCode is >= 200 and < 400;
+
+                return (present ? new UpdateInfo(tag, asset.ToString(), string.Empty) : null, true);
+            }
+            return null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static async Task<(UpdateInfo? Update, bool Reachable)> CheckViaApiAsync(CancellationToken cancellationToken)
     {
         try
         {

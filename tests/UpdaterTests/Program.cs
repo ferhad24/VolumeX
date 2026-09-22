@@ -1,6 +1,15 @@
 using Crescendo.Services;
 
-// Usage: UpdaterTests <signed file>
+// Usage: UpdaterTests --check          ask GitHub the way the app does
+//        UpdaterTests <signed file>    signature tests (release gate)
+if (args.Length > 0 && args[0] == "--check")
+{
+    // This assembly is 1.0.0, so any published release counts as newer.
+    var (update, reachable) = await UpdateService.CheckAsync(CancellationToken.None);
+    Console.WriteLine($"reachable={reachable}  update={update?.Version ?? "none"}  url={update?.DownloadUrl ?? "-"}");
+    return update is not null ? 0 : 1;
+}
+
 // Builds a tampered and an unsigned copy next to it and checks all three.
 int failures = 0;
 void Check(bool ok, string what) { Console.WriteLine($"  [{(ok ? " ok " : "FAIL")}] {what}"); if (!ok) failures++; }

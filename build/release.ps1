@@ -109,6 +109,14 @@ $Notes | Set-Content $notesFile -Encoding UTF8
 & gh release create "v$Version" $setup --repo $repo --title "VolumeX $Version" --notes-file $notesFile
 if ($LASTEXITCODE -ne 0) { throw "GitHub release failed" }
 
+# Ask GitHub the way installed copies do, to prove the release is discoverable.
+Start-Sleep -Seconds 5
+$check = & (Join-Path $updaterTests "bin\Debug\net8.0-windows\UpdaterTests.exe") --check
+Write-Host $check
+if ($check -notmatch "update=$([regex]::Escape($Version)) ") {
+    Write-Warning "Installed copies do not see v$Version yet - check the release page."
+}
+
 Write-Host ""
 Write-Host "Released v$Version." -ForegroundColor Green
 Write-Host "Running copies will offer the update at their next check (on start, then every 6 hours)." -ForegroundColor Green
