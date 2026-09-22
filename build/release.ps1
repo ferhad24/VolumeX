@@ -93,8 +93,10 @@ git -C $root add -A
 # Through a file: Windows PowerShell splits a multi-line -m argument into
 # pathspecs, the commit fails, and the tag then lands on the previous commit.
 $commitFile = Join-Path $env:TEMP "crescendo-commit.txt"
-"Release $Version`n`n$Notes`n`nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" |
-    Set-Content $commitFile -Encoding UTF8
+# No BOM: Windows PowerShell's UTF8 encoding writes one, and git keeps it in the subject.
+[IO.File]::WriteAllText($commitFile,
+    "Release $Version`n`n$Notes`n`nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>",
+    (New-Object Text.UTF8Encoding $false))
 git -C $root commit -q -F $commitFile
 if ($LASTEXITCODE -ne 0) { throw "Commit failed - not tagging" }
 git -C $root tag "v$Version"
