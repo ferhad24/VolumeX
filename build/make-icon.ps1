@@ -1,12 +1,12 @@
-# Builds the app icon from the original VolumeX logo (assets\volumex-logo.png,
-# 1254 px, transparent). Every size is resampled straight from that master, so
+# Builds the app icon from the VolumeX icon master (assets\volumex-icon.png,
+# made by build\prepare-logo.py from the supplied artwork). Every size is resampled straight from that master, so
 # the small sizes are not a blurred copy of a copy.
 #
 #   assets\volumex.ico       16/24/32/48/64/128/256, for the exe, window and setup
 #   assets\volumex-256.png   for the title bar and the tray icon
 
 param(
-    [string]$Source = (Join-Path (Split-Path $PSScriptRoot -Parent) "assets\volumex-logo.png"),
+    [string]$Source = (Join-Path (Split-Path $PSScriptRoot -Parent) "assets\volumex-icon.png"),
     [string]$OutIco = (Join-Path (Split-Path $PSScriptRoot -Parent) "assets\volumex.ico"),
     [string]$OutPng = (Join-Path (Split-Path $PSScriptRoot -Parent) "assets\volumex-256.png")
 )

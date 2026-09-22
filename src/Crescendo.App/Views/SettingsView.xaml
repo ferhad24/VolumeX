@@ -148,6 +148,8 @@
             <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                 <StackPanel>
                     <TextBlock Text="ABOUT" Style="{StaticResource SectionText}" Margin="0,0,0,12" />
+                    <Image Source="/volumex-wordmark.png" Width="260" HorizontalAlignment="Left"
+                           Margin="0,0,0,16" RenderOptions.BitmapScalingMode="HighQuality" />
                     <TextBlock Style="{StaticResource CaptionText}" MaxWidth="640" HorizontalAlignment="Left"
                                Text="VolumeX amplifies Windows audio at the system level using a custom audio processing object, with a look-ahead limiter to keep boosted peaks from clipping. Settings and per-device profiles are stored in ProgramData\Crescendo." />
                     <StackPanel Orientation="Horizontal" Margin="0,14,0,0">

@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/volumex-wordmark.png" alt="VolumeX" width="420"></p>
+
 # VolumeX
 
 System-wide audio amplification for Windows 10/11 — up to 500% — with a
