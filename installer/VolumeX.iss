@@ -85,8 +85,10 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-; Interactive install: optional launch at the end.
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--update-engine"; Description: "Start VolumeX"; Flags: nowait postinstall skipifsilent
+; Interactive install: optional launch at the end. A postinstall entry runs
+; as the original, non-elevated user by default, and VolumeX.exe demands
+; elevation, so that launch failed with error 740; run it with Setup's token.
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--update-engine"; Description: "Start VolumeX"; Flags: nowait postinstall skipifsilent runascurrentuser
 ; Silent update (from the in-app updater): refresh the engine and reopen.
 Filename: "{app}\{#MyAppExeName}"; Parameters: "--update-engine"; Flags: nowait; Check: WizardSilent
 
