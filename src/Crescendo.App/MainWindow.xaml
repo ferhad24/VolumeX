@@ -232,6 +232,122 @@
             </Grid>
         </Grid>
 
+        <!-- ================================================ first-run tour == -->
+        <!-- A light veil, so the page each step talks about stays readable
+             behind the card. -->
+        <Grid Grid.Row="0" Grid.RowSpan="2" DataContext="{Binding Tour}"
+              Visibility="{Binding IsOpen, Converter={StaticResource BoolToVisibility}}">
+            <Border Background="#8C0B0D12" />
+            <Border Width="500" HorizontalAlignment="Center" VerticalAlignment="{Binding CardAlignment}" Margin="0,40"
+                    Padding="28,24" CornerRadius="{StaticResource CardRadius}"
+                    Background="{DynamicResource ElevatedBrush}"
+                    BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="32" ShadowDepth="8" Opacity="0.45"
+                                      Color="{DynamicResource ShadowColor}" />
+                </Border.Effect>
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Text="{Binding StepText}" Style="{StaticResource SectionText}"
+                                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                        <ItemsControl ItemsSource="{Binding Dots}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Height="6" Margin="3,0,0,0" CornerRadius="3">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Width" Value="6" />
+                                                <Setter Property="Background" Value="{DynamicResource BorderStrongBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                        <Setter Property="Width" Value="18" />
+                                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+
+                    <TextBlock Text="{Binding Current.Title}" Style="{StaticResource TitleText}" FontSize="20"
+                               Margin="0,12,0,0" />
+                    <TextBlock Text="{Binding Current.Body}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}" LineHeight="21" Margin="0,8,0,0" />
+
+                    <!-- Step actions, done right here instead of sending the user off. -->
+                    <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,16,0,0"
+                            Padding="14,8" Content="Install engine"
+                            Command="{Binding DataContext.InstallEngineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Visibility="{Binding ShowInstallEngine, Converter={StaticResource BoolToVisibility}}" />
+                    <TextBlock Text="&#x2713;  Engine installed" Style="{StaticResource ValueText}" Margin="0,16,0,0"
+                               Foreground="{DynamicResource SuccessBrush}"
+                               Visibility="{Binding ShowEngineReady, Converter={StaticResource BoolToVisibility}}" />
+                    <StackPanel Visibility="{Binding ShowAutostart, Converter={StaticResource BoolToVisibility}}">
+                        <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,16,0,0"
+                                Padding="14,8" Content="Start with Windows"
+                                Command="{Binding EnableAutostartCommand}"
+                                Visibility="{Binding AutostartEnabled, Converter={StaticResource BoolToVisibilityInverse}}" />
+                        <TextBlock Text="&#x2713;  Starts with Windows, quietly in the tray" Style="{StaticResource ValueText}"
+                                   Margin="0,16,0,0" Foreground="{DynamicResource SuccessBrush}"
+                                   Visibility="{Binding AutostartEnabled, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
+
+                    <Grid Margin="0,24,0,0">
+                        <Button Style="{StaticResource GhostButton}" Content="Skip tour" HorizontalAlignment="Left"
+                                Command="{Binding SkipCommand}" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{StaticResource SecondaryButton}" Content="Back" Padding="16,8"
+                                    Margin="0,0,8,0" Command="{Binding BackCommand}"
+                                    Visibility="{Binding CanGoBack, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Style="{StaticResource PrimaryButton}" Content="{Binding NextText}" Padding="20,8"
+                                    MinWidth="96" Command="{Binding NextCommand}" IsDefault="True" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ================================================ update prompt == -->
+        <Grid Grid.Row="0" Grid.RowSpan="2"
+              Visibility="{Binding UpdatePromptVisible, Converter={StaticResource BoolToVisibility}}">
+            <Border Background="#B30B0D12" />
+            <Border Width="440" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Padding="28,24" CornerRadius="{StaticResource CardRadius}"
+                    Background="{DynamicResource ElevatedBrush}"
+                    BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="32" ShadowDepth="8" Opacity="0.45"
+                                      Color="{DynamicResource ShadowColor}" />
+                </Border.Effect>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="18"
+                                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"
+                                   Margin="0,0,10,0" />
+                        <TextBlock Text="Update available" Style="{StaticResource TitleText}" FontSize="20" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding UpdatePromptText}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}" LineHeight="21" Margin="0,12,0,0" />
+                    <TextBlock Text="{Binding UpdateText}" Style="{StaticResource CaptionText}" Margin="0,12,0,0"
+                               Visibility="{Binding Updating, Converter={StaticResource BoolToVisibility}}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+                        <Button Style="{StaticResource GhostButton}" Content="Later" Margin="0,0,8,0"
+                                Command="{Binding DismissUpdatePromptCommand}" />
+                        <Button Style="{StaticResource PrimaryButton}" Content="Update now" Padding="20,8"
+                                Command="{Binding InstallUpdateCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
         <!-- ==================================================== busy veil == -->
         <Border Grid.Row="0" Grid.RowSpan="2" Background="#CC0B0D12"
                 Visibility="{Binding Busy, Converter={StaticResource BoolToVisibility}}">

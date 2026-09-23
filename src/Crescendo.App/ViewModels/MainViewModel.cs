@@ -84,7 +84,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _statusTimer.Start();
         RefreshStatus();
         StartUpdateChecks();
+
+        Tour = new TourViewModel(this);
+        StartTourCommand = new RelayCommand(() => Tour.Open());
     }
+
+    // ---------------------------------------------------------------- tour
+
+    public TourViewModel Tour { get; }
+    public RelayCommand StartTourCommand { get; }
+
+    /// <summary>A fresh install that has not seen the first-run tour yet.</summary>
+    public bool ShouldShowTour => _settings.TourSeen == false;
 
     // ---------------------------------------------------------------- state
 
@@ -635,8 +646,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private UpdateInfo? _pendingUpdate;
     private DispatcherTimer? _updateTimer;
 
-    /// <summary>Raised once per newly found version, for the tray notification.</summary>
-    public event Action<UpdateInfo>? UpdateFound;
+    /// <summary>
+    /// Raised once per newly found version. The flag is true for the check
+    /// made as the app starts, when it is fine to bring the window forward;
+    /// a later check (every six hours) must not jump in front of a game.
+    /// </summary>
+    public event Action<UpdateInfo, bool>? UpdateFound;
+
+    private bool _startupCheckDone;
 
     /// <summary>The setup has started and needs this process gone to replace it.</summary>
     public event Action? ExitRequested;
@@ -652,6 +669,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool _updating;
     public bool Updating { get => _updating; private set => Set(ref _updating, value); }
 
+    /// <summary>
+    /// The update card over the window. Raised for every newly found version,
+    /// so each start of the app asks once; "Later" only hides it until the
+    /// next start or the next version.
+    /// </summary>
+    private bool _updatePromptVisible;
+    public bool UpdatePromptVisible { get => _updatePromptVisible; private set => Set(ref _updatePromptVisible, value); }
+
+    private string _updatePromptText = string.Empty;
+    public string UpdatePromptText { get => _updatePromptText; private set => Set(ref _updatePromptText, value); }
+
+    public RelayCommand DismissUpdatePromptCommand { get; private set; } = null!;
+
     public AsyncRelayCommand InstallUpdateCommand { get; private set; } = null!;
     public AsyncRelayCommand CheckForUpdatesCommand { get; private set; } = null!;
 
@@ -659,12 +689,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         InstallUpdateCommand = new AsyncRelayCommand(InstallUpdateAsync, () => _pendingUpdate is not null && !Updating);
         CheckForUpdatesCommand = new AsyncRelayCommand(() => CheckForUpdatesAsync(userAsked: true));
+        DismissUpdatePromptCommand = new RelayCommand(() => UpdatePromptVisible = false, () => !Updating);
 
-        // First check shortly after start, so launch itself stays instant;
-        // then every six hours for a copy that lives in the tray for days.
+        // First check right after start (off the launch path, so the window is
+        // not held up); then every six hours for a copy that lives in the tray.
         _updateTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
         {
-            Interval = TimeSpan.FromSeconds(8)
+            Interval = TimeSpan.FromSeconds(3)
         };
         _updateTimer.Tick += async (_, _) =>
         {
@@ -680,6 +711,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (userAsked) UpdateText = "Checking for updates…";
 
         (UpdateInfo? info, bool reachable) = await UpdateService.CheckAsync(CancellationToken.None).ConfigureAwait(true);
+
+        bool atStartup = !_startupCheckDone && !userAsked;
+        if (!userAsked) _startupCheckDone = true;
 
         if (info is null)
         {
@@ -699,7 +733,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         UpdateText = $"VolumeX {info.Version} is available.";
         InstallUpdateCommand.RaiseCanExecuteChanged();
 
-        if (isNew) UpdateFound?.Invoke(info);
+        if (isNew)
+        {
+            UpdatePromptText = $"VolumeX {info.Version} is ready to install. You have {UpdateService.CurrentVersion}. " +
+                               "It installs in place in about a minute, and your settings are kept.";
+            UpdatePromptVisible = true;
+            UpdateFound?.Invoke(info, atStartup);
+        }
     }
 
     private async Task InstallUpdateAsync()
@@ -708,6 +748,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         Updating = true;
         InstallUpdateCommand.RaiseCanExecuteChanged();
+        DismissUpdatePromptCommand.RaiseCanExecuteChanged();
         try
         {
             var progress = new Progress<double>(p => UpdateText = $"Downloading {_pendingUpdate.Version}… {p:0}%");
@@ -726,6 +767,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             UpdateText = $"Update failed: {ex.Message}";
             Updating = false;
             InstallUpdateCommand.RaiseCanExecuteChanged();
+            DismissUpdatePromptCommand.RaiseCanExecuteChanged();
         }
     }
 

@@ -34,9 +34,14 @@ public static class StartupService
 
     /// <summary>
     /// Brings an existing startup task up to date: the Crescendo-era task is
-    /// replaced (its exe is gone), and an older VolumeX task that opened the
-    /// window or pointed at a previous path is re-registered.
+    /// replaced (its exe is gone), and a VolumeX task from before the quiet
+    /// start, or one whose exe no longer exists, is re-registered.
     /// </summary>
+    /// <remarks>
+    /// A task that is already current is left alone. Re-registering it on
+    /// every start would let any other copy of VolumeX that happens to be run
+    /// (a download, a test build) take the startup task over.
+    /// </remarks>
     public static void Refresh()
     {
         if (TaskExists(LegacyTaskName))
@@ -44,9 +49,34 @@ public static class StartupService
             Remove(LegacyTaskName);
             Install();
         }
-        else if (TaskExists(TaskName))
+        else if (TaskExists(TaskName) && !IsCurrent(TaskName))
         {
             Install();
+        }
+    }
+
+    private static bool IsCurrent(string name)
+    {
+        try
+        {
+            using Process? process = Start("schtasks.exe", $"/Query /TN \"{name}\" /XML");
+            if (process is null) return true;
+            string xml = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(5000);
+            if (process.ExitCode != 0) return true;
+
+            var document = System.Xml.Linq.XDocument.Parse(xml);
+            System.Xml.Linq.XNamespace ns = "http://schemas.microsoft.com/windows/2004/02/mit/task";
+            System.Xml.Linq.XElement? exec = document.Descendants(ns + "Exec").FirstOrDefault();
+            string command = exec?.Element(ns + "Command")?.Value.Trim('"', ' ') ?? string.Empty;
+            string arguments = exec?.Element(ns + "Arguments")?.Value.Trim() ?? string.Empty;
+
+            return arguments == AutostartArgument && File.Exists(command);
+        }
+        catch (Exception)
+        {
+            // Unreadable: leave the user's task as it is rather than guess.
+            return true;
         }
     }
 

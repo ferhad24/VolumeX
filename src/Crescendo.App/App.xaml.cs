@@ -116,9 +116,20 @@ public partial class App : System.Windows.Application
         _tray.ExitRequested += ExitApplication;
 
         _viewModel.ExitRequested += ExitApplication;
-        _viewModel.UpdateFound += info => _tray?.ShowMessage(
-            $"VolumeX {info.Version} is available",
-            "Open VolumeX and press Update — it installs in place, settings are kept.");
+        _viewModel.UpdateFound += (info, atStartup) =>
+        {
+            // Found as VolumeX starts: bring the window up with the update card,
+            // even after a quiet start at sign-in. Found later: only a balloon,
+            // so it never jumps in front of whatever the user is doing.
+            LogLine($"VolumeX {info.Version} found ({(atStartup ? "at start" : "periodic check")}).");
+            if (atStartup)
+            {
+                ShowMainWindow(activate: false);
+                return;
+            }
+            _tray?.ShowMessage($"VolumeX {info.Version} is available",
+                "Open VolumeX and press Update — it installs in place, settings are kept.");
+        };
 
         _window = new MainWindow { DataContext = _viewModel };
         _window.CloseRequested += OnWindowCloseRequested;
@@ -126,13 +137,18 @@ public partial class App : System.Windows.Application
         Hotkeys.Attach(_window);
         Hotkeys.Rebind(_viewModel.Settings);
 
+        // First start after a fresh install: walk through the basics. If this
+        // start is a hidden one, the tour is waiting when the window opens.
+        if (_viewModel.ShouldShowTour)
+            _viewModel.Tour.Open();
+
         bool autostart = HasArg(e, StartupService.AutostartArgument);
         bool startHidden = autostart || _viewModel.Settings.StartMinimized || HasArg(e, "--minimized");
 
         if (autostart)
         {
-            // Started at sign-in: the tray icon is the only sign VolumeX is there.
-            _window.WindowState = WindowState.Minimized;
+            // Started at sign-in: the window is simply not shown; the tray icon
+            // is the only sign VolumeX is there.
         }
         else if (startHidden)
         {
@@ -153,15 +169,29 @@ public partial class App : System.Windows.Application
         _tray?.Refresh();
     }
 
-    private void ShowMainWindow()
+    private void ShowMainWindow() => ShowMainWindow(activate: true);
+
+    /// <param name="activate">
+    /// False when VolumeX brings itself up (the update card): the window comes
+    /// to the front but the keyboard stays where the user is typing, so a key
+    /// meant for another program cannot press a button here.
+    /// </param>
+    private void ShowMainWindow(bool activate)
     {
         if (_window is null) return;
 
+        // Restore before showing: a window shown while still minimised raises
+        // StateChanged, and with "minimise to tray" on that hides it again at
+        // once -- the window would never appear after a quiet start.
+        if (_window.WindowState == WindowState.Minimized)
+            _window.WindowState = WindowState.Normal;
+
+        _window.ShowActivated = activate;
         _window.Show();
-        _window.WindowState = WindowState.Normal;
-        _window.Activate();
+        if (activate) _window.Activate();
         _window.Topmost = true;
         _window.Topmost = false;
+        _window.ShowActivated = true;
     }
 
     private void OnWindowCloseRequested(object? sender, EventArgs e)

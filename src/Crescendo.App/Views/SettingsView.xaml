@@ -157,6 +157,8 @@
                                    VerticalAlignment="Center" Margin="0,0,16,0" />
                         <Button Style="{StaticResource SecondaryButton}" Content="Check for updates"
                                 Padding="12,7" FontSize="12" Command="{Binding CheckForUpdatesCommand}" />
+                        <Button Style="{StaticResource GhostButton}" Content="Show the tour again"
+                                Padding="12,7" FontSize="12" Margin="8,0,0,0" Command="{Binding StartTourCommand}" />
                     </StackPanel>
                     <TextBlock Text="{Binding UpdateText}" Style="{StaticResource CaptionText}" Margin="0,8,0,0"
                                Visibility="{Binding UpdateText, Converter={StaticResource PresenceToVisibility}}" />

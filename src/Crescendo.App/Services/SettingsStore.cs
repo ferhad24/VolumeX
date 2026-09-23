@@ -51,6 +51,13 @@ public sealed class AppSettings
     public string? LastDeviceId { get; set; }
     public EffectSlot EffectSlot { get; set; } = EffectSlot.Mode;
 
+    /// <summary>
+    /// False only on a fresh install, until the first-run tour is finished or
+    /// skipped. Null in files written before the tour existed: those users
+    /// already know the app and are not shown it uninvited.
+    /// </summary>
+    public bool? TourSeen { get; set; }
+
     /// <summary>How much one boost hotkey press moves the slider, in percent.</summary>
     public int BoostStepPercent { get; set; } = 25;
 
@@ -111,7 +118,7 @@ public sealed class SettingsStore
     {
         try
         {
-            if (!File.Exists(_path)) return new AppSettings();
+            if (!File.Exists(_path)) return new AppSettings { TourSeen = false };
             string json = File.ReadAllText(_path);
             AppSettings settings = JsonSerializer.Deserialize<AppSettings>(json, Options) ?? new AppSettings();
             settings.MigrateHotkeys();
