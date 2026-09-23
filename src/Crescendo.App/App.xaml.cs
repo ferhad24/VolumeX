@@ -41,6 +41,17 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        // Scripted "start with Windows", same code path as the settings toggle.
+        if (HasArg(e, "--enable-autostart") || HasArg(e, "--disable-autostart"))
+        {
+            bool enable = HasArg(e, "--enable-autostart");
+            LogLine(StartupService.SetEnabled(enable)
+                ? $"Start with Windows {(enable ? "enabled" : "disabled")} from the command line."
+                : "Start with Windows could not be changed from the command line.");
+            Shutdown();
+            return;
+        }
+
         // Two copies would fight over the shared configuration block and the
         // per-application mixer, so the second one simply defers to the first.
         _instanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutex, out bool isFirstInstance);
@@ -81,8 +92,9 @@ public partial class App : System.Windows.Application
         SystemEvents_Register();
 
         // A "start with Windows" task from the Crescendo days points at an exe
-        // that is gone; carry the setting over rather than drop it.
-        StartupService.MigrateLegacyTask(_viewModel.Settings.StartMinimized);
+        // that is gone, and an older VolumeX task opened the window; bring
+        // either up to date rather than drop the setting.
+        StartupService.Refresh();
 
         Hotkeys = new HotkeyService();
         Hotkeys.Triggered += OnHotkey;
@@ -102,10 +114,15 @@ public partial class App : System.Windows.Application
         Hotkeys.Attach(_window);
         Hotkeys.Rebind(_viewModel.Settings);
 
-        bool startHidden = _viewModel.Settings.StartMinimized ||
-                           e.Args.Any(a => a.Equals("--minimized", StringComparison.OrdinalIgnoreCase));
+        bool autostart = HasArg(e, StartupService.AutostartArgument);
+        bool startHidden = autostart || _viewModel.Settings.StartMinimized || HasArg(e, "--minimized");
 
-        if (startHidden)
+        if (autostart)
+        {
+            // Started at sign-in: the tray icon is the only sign VolumeX is there.
+            _window.WindowState = WindowState.Minimized;
+        }
+        else if (startHidden)
         {
             _window.WindowState = WindowState.Minimized;
             _tray.ShowMessage("VolumeX is running",

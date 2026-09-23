@@ -80,7 +80,7 @@ public partial class SettingsView : UserControl
         if (_loading || ViewModel is null) return;
 
         bool wanted = StartWithWindowsToggle.IsChecked == true;
-        bool applied = StartupService.SetEnabled(wanted, ViewModel.Settings.StartMinimized);
+        bool applied = StartupService.SetEnabled(wanted);
 
         if (!applied)
         {

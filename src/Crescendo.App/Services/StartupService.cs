@@ -19,23 +19,35 @@ public static class StartupService
     // The task 1.1.x created under the old name, pointing at Crescendo.exe.
     private const string LegacyTaskName = "Crescendo Audio Engine";
 
+    /// <summary>
+    /// Passed only by the startup task: start in the notification area with
+    /// no window and no balloon, so sign-in stays quiet.
+    /// </summary>
+    public const string AutostartArgument = "--autostart";
+
     public static bool IsEnabled() => TaskExists(TaskName);
 
-    public static bool SetEnabled(bool enabled, bool startMinimized)
+    public static bool SetEnabled(bool enabled)
     {
-        return enabled ? Install(startMinimized) : Remove(TaskName) & Remove(LegacyTaskName);
+        return enabled ? Install() : Remove(TaskName) & Remove(LegacyTaskName);
     }
 
     /// <summary>
-    /// After the rename: a startup task left by Crescendo points at an exe that
-    /// no longer exists. Replace it with one for this executable, so "start
-    /// with Windows" survives the upgrade instead of silently stopping.
+    /// Brings an existing startup task up to date: the Crescendo-era task is
+    /// replaced (its exe is gone), and an older VolumeX task that opened the
+    /// window or pointed at a previous path is re-registered.
     /// </summary>
-    public static void MigrateLegacyTask(bool startMinimized)
+    public static void Refresh()
     {
-        if (!TaskExists(LegacyTaskName)) return;
-        Remove(LegacyTaskName);
-        Install(startMinimized);
+        if (TaskExists(LegacyTaskName))
+        {
+            Remove(LegacyTaskName);
+            Install();
+        }
+        else if (TaskExists(TaskName))
+        {
+            Install();
+        }
     }
 
     private static bool TaskExists(string name)
@@ -53,12 +65,10 @@ public static class StartupService
         }
     }
 
-    private static bool Install(bool startMinimized)
+    private static bool Install()
     {
         string exe = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "VolumeX.exe");
         string xmlPath = Path.Combine(Path.GetTempPath(), "volumex-task.xml");
-
-        string arguments = startMinimized ? "--minimized" : string.Empty;
 
         // Registering from XML rather than the /Create shorthand is what makes
         // "run with highest privileges" and "start on logon of any user"
@@ -105,7 +115,7 @@ public static class StartupService
               <Actions Context="Author">
                 <Exec>
                   <Command>"{exe}"</Command>
-                  <Arguments>{arguments}</Arguments>
+                  <Arguments>{AutostartArgument}</Arguments>
                   <WorkingDirectory>{Path.GetDirectoryName(exe)}</WorkingDirectory>
                 </Exec>
               </Actions>

@@ -286,7 +286,7 @@ public sealed class EngineService : IDisposable
     public void Uninstall()
     {
         _installer.RemoveEverything();
-        StartupService.SetEnabled(false, startMinimized: false);
+        StartupService.SetEnabled(false);
     }
 
     public void RemoveEverything() => _installer.RemoveEverything();

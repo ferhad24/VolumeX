@@ -32,7 +32,7 @@
                             <TextBlock Style="{StaticResource CaptionText}" FontSize="11" MaxWidth="560"
                                        HorizontalAlignment="Left"
                                        Foreground="{DynamicResource TextTertiaryBrush}"
-                                       Text="Registers a scheduled task so VolumeX starts elevated without a prompt at every sign-in." />
+                                       Text="Starts quietly at every sign-in: no window, no prompt, just the icon in the notification area." />
                         </StackPanel>
                     </CheckBox>
 
@@ -42,7 +42,7 @@
                             <TextBlock Text="Start minimised to tray" Style="{StaticResource BodyText}" />
                             <TextBlock Style="{StaticResource CaptionText}" FontSize="11"
                                        Foreground="{DynamicResource TextTertiaryBrush}"
-                                       Text="Open straight into the notification area." />
+                                       Text="When you open VolumeX yourself, go straight to the notification area." />
                         </StackPanel>
                     </CheckBox>
 
