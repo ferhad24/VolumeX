@@ -242,9 +242,18 @@ public sealed class EngineService : IDisposable
         }
         catch (IOException)
         {
-            // Mapped by audiodg: stop the service to release it.
+            // Mapped by audiodg: stop the service to release it. If the copy
+            // then fails, the machine must not be left without sound.
             RunAsync("net", "stop AudioEndpointBuilder /y", CancellationToken.None).GetAwaiter().GetResult();
-            File.Copy(source, InstalledDllPath, overwrite: true);
+            try
+            {
+                File.Copy(source, InstalledDllPath, overwrite: true);
+            }
+            catch (Exception)
+            {
+                RestartAudioServiceAsync().GetAwaiter().GetResult();
+                throw;
+            }
         }
 
         _installer.RegisterEngine(InstalledDllPath);
@@ -370,6 +379,54 @@ public sealed class EngineService : IDisposable
     /// stream. It is the only reliable way to make Windows reload endpoint
     /// effects without disabling the device in Device Manager.
     /// </remarks>
+    /// <summary>
+    /// Starts the audio services if they are stopped. An engine refresh stops
+    /// them for a moment; if that process is killed before it restarts them,
+    /// the machine has no sound devices until something starts them again.
+    /// Returns true when they had to be started.
+    /// </summary>
+    public static async Task<bool> EnsureAudioServiceRunningAsync(CancellationToken cancellationToken = default)
+    {
+        bool started = false;
+        foreach (string name in new[] { "AudioEndpointBuilder", "Audiosrv" })
+        {
+            // Start = 2 is "Automatic"; a service the user disabled is left alone.
+            using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                $@"SYSTEM\CurrentControlSet\Services\{name}");
+            if (key?.GetValue("Start") is not int startType || startType != 2) continue;
+
+            if (await IsServiceStoppedAsync(name, cancellationToken).ConfigureAwait(false))
+            {
+                await RunAsync("net", $"start {name}", cancellationToken).ConfigureAwait(false);
+                started = true;
+            }
+        }
+        return started;
+    }
+
+    /// <summary>
+    /// "sc query" prints "STATE : 1  STOPPED"; the number is the same in every
+    /// Windows display language, the word after it is not.
+    /// </summary>
+    private static async Task<bool> IsServiceStoppedAsync(string name, CancellationToken cancellationToken)
+    {
+        var startInfo = new ProcessStartInfo("sc.exe", $"query {name}")
+        {
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+
+        using Process? process = Process.Start(startInfo);
+        if (process is null) return false;
+        string output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+        var match = System.Text.RegularExpressions.Regex.Match(output, @"STATE\s*:\s*(\d+)");
+        return match.Success && match.Groups[1].Value == "1";
+    }
+
     public static async Task RestartAudioServiceAsync(CancellationToken cancellationToken = default)
     {
         await RunAsync("net", "stop AudioEndpointBuilder /y", cancellationToken).ConfigureAwait(false);

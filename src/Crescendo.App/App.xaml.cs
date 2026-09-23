@@ -74,6 +74,18 @@ public partial class App : System.Windows.Application
         else if (HasArg(e, "--update-engine"))
             RunEngineRefresh();
 
+        // An engine refresh interrupted half-way leaves the audio services
+        // stopped and Windows without sound devices; put them back first.
+        try
+        {
+            if (EngineService.EnsureAudioServiceRunningAsync().GetAwaiter().GetResult())
+                LogLine("Audio services were stopped; started them again.");
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
+        }
+
         try
         {
             _viewModel = new MainViewModel();
