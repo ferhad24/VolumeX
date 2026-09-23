@@ -17,7 +17,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>1.2.7</Version>
+    <Version>1.2.8</Version>
     <Product>VolumeX</Product>
     <Company>Ferhad</Company>
     <Description>System-wide audio amplification with clipping protection.</Description>

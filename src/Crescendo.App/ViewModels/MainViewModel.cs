@@ -618,9 +618,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             EngineHealth.NotAttached =>
                 ("Not active on this device",
                  $"The engine is registered but not attached to {SelectedDeviceName}."),
+            // The engine only reports in while sound is playing, so "attached
+            // but silent" is usually nothing more than a quiet PC.
             EngineHealth.PendingRestart =>
-                ("Restart required",
-                 "Windows loads audio effects when the audio service starts. Restart it to activate VolumeX."),
+                ("Installed, waiting for sound",
+                 "Play some audio to confirm VolumeX is running. If this stays after sound is playing, restart the audio service."),
             EngineHealth.Idle =>
                 ("Ready",
                  $"Running on {SelectedDeviceName}. Waiting for audio."),
@@ -630,6 +632,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     ? $"{status.SampleRate / 1000.0:0.#} kHz · {status.Channels} ch · {_profile.LimiterLookaheadMs:0.#} ms added latency"
                     : $"Running on {SelectedDeviceName}.")
         };
+
+        // A failed install stays on screen until the engine is in place or the
+        // user tries again. The status poll would otherwise replace the reason
+        // with "Engine not installed" within a second, and the user would only
+        // ever see the button do nothing.
+        if (_installError is string error && !EngineInstalled)
+        {
+            StatusTitle = "Could not install the engine";
+            StatusDetail = $"{error} Details are in {App.LogPath}.";
+        }
 
         // Overrides everything above: with no link, even a loaded engine never
         // sees a single setting change.
@@ -790,10 +802,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string? _busyMessage;
     public string? BusyMessage { get => _busyMessage; private set => Set(ref _busyMessage, value); }
 
+    private string? _installError;
+
     private async Task InstallEngineAsync()
     {
-        if (SelectedDevice is null) return;
+        if (SelectedDevice is null)
+        {
+            _installError = "No playback device is selected. Pick one at the top right and try again.";
+            RefreshStatus();
+            return;
+        }
 
+        _installError = null;
         Busy = true;
         BusyMessage = "Registering the audio engine…";
         try
@@ -810,8 +830,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             App.Log(ex);
-            StatusTitle = "Could not install the engine";
-            StatusDetail = ex.Message;
+            _installError = ex.Message;
+            // Whatever failed half-way, never leave Windows without sound.
+            try { await EngineService.EnsureAudioServiceRunningAsync().ConfigureAwait(true); }
+            catch (Exception restartError) { App.Log(restartError); }
         }
         finally
         {
